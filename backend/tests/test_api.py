@@ -1,18 +1,11 @@
-import pytest
-
 from app import create_app
-
-
-@pytest.fixture
-def client():
-    return create_app().test_client()
 
 
 def test_health_returns_ok(client):
     response = client.get("/api/v1/health")
 
     assert response.status_code == 200
-    assert response.get_json() == {"status": "ok"}
+    assert response.get_json() == {"status": "ok", "database": "ok"}
 
 
 def test_unknown_route_returns_json_404(client):
@@ -29,8 +22,8 @@ def test_wrong_method_returns_json_405(client):
     assert response.get_json()["error"] == "Method Not Allowed"
 
 
-def test_unhandled_exception_returns_json_500_without_details():
-    app = create_app()
+def test_unhandled_exception_returns_json_500_without_details(app):
+    app.testing = False
 
     @app.get("/boom")
     def boom():
@@ -41,3 +34,12 @@ def test_unhandled_exception_returns_json_500_without_details():
     assert response.status_code == 500
     assert response.get_json()["error"] == "Internal Server Error"
     assert "internal detail" not in response.get_data(as_text=True)
+
+
+def test_health_returns_503_when_database_is_unreachable():
+    app = create_app({"SQLALCHEMY_DATABASE_URI": "postgresql+psycopg://mindbridge:mindbridge@127.0.0.1:1/mindbridge"})
+
+    response = app.test_client().get("/api/v1/health")
+
+    assert response.status_code == 503
+    assert response.get_json() == {"status": "error", "database": "unavailable"}
