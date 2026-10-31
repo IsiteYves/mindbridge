@@ -3,6 +3,7 @@ from flask import Flask
 from app.api import api_bp
 from app.api.errors import register_error_handlers
 from app.config import Config
+from app import models  # noqa: F401  registers tables with SQLAlchemy metadata
 from app.extensions import db, migrate
 
 

@@ -1,11 +1,17 @@
 import pytest
 
 from app import create_app
+from app.extensions import db
 
 
 @pytest.fixture
 def app():
-    return create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": "sqlite://"})
+    app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": "sqlite://"})
+    with app.app_context():
+        db.create_all()
+        yield app
+        db.session.remove()
+        db.drop_all()
 
 
 @pytest.fixture
