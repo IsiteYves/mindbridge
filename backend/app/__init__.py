@@ -12,6 +12,8 @@ def create_app(config=None):
     app.config.from_object(Config)
     if config:
         app.config.from_mapping(config)
+    if not app.config["SECRET_KEY"]:
+        raise RuntimeError("SECRET_KEY must be set")
 
     db.init_app(app)
     migrate.init_app(app, db)

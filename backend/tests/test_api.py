@@ -37,7 +37,9 @@ def test_unhandled_exception_returns_json_500_without_details(app):
 
 
 def test_health_returns_503_when_database_is_unreachable():
-    app = create_app({"SQLALCHEMY_DATABASE_URI": "postgresql+psycopg://mindbridge:mindbridge@127.0.0.1:1/mindbridge"})
+    app = create_app(
+        {"SECRET_KEY": "test-secret-key-long-enough-for-hs256", "SQLALCHEMY_DATABASE_URI": "postgresql+psycopg://127.0.0.1:1/mindbridge"}
+    )
 
     response = app.test_client().get("/api/v1/health")
 
