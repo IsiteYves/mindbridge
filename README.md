@@ -39,7 +39,7 @@ createdb -O mindbridge mindbridge_test   # used by the tests
 
 Then check `http://127.0.0.1:5001/api/v1/health`. It returns `503` when the database is unreachable.
 
-Run the tests with `python -m pytest` from `backend/`. They run against PostgreSQL in the `mindbridge_test` database, which is dropped and recreated on each run, so never point `TEST_DATABASE_URL` at the development database.
+Set `TEST_DATABASE_URL` in `backend/.env` (see `.env.example`), then run the tests with `python -m pytest` from `backend/`. They run against PostgreSQL in the `mindbridge_test` database, which is dropped and recreated on each run, so never point `TEST_DATABASE_URL` at the development database.
 
 ### Frontend
 
