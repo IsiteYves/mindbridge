@@ -1,4 +1,5 @@
 import os
+import secrets
 
 import pytest
 
@@ -27,3 +28,14 @@ def app():
 @pytest.fixture
 def client(app):
     return app.test_client()
+
+
+@pytest.fixture
+def make_user_headers(client):
+    def _make(username):
+        password = secrets.token_urlsafe(16)
+        client.post("/api/v1/auth/register", json={"username": username, "password": password})
+        token = client.post("/api/v1/auth/login", json={"username": username, "password": password}).get_json()["token"]
+        return {"Authorization": f"Bearer {token}"}
+
+    return _make
