@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 
 from app.api import api_bp
 from app.api.errors import register_error_handlers
@@ -18,6 +19,7 @@ def create_app(config=None):
     db.init_app(app)
     migrate.init_app(app, db)
 
+    CORS(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
     app.register_blueprint(api_bp)
     register_error_handlers(app)
     return app
