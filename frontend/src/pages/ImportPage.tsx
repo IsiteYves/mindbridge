@@ -1,7 +1,5 @@
-"use client";
-
-import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { Link } from "react-router";
 
 import { apiRequest, CanvasCourse, errorMessage, ImportResult } from "@/lib/api";
 import { formatDate } from "@/lib/dates";
@@ -125,7 +123,7 @@ export default function ImportPage() {
                   <br />
                   <span className="muted">{formatDate(assignment.deadline)}</span>
                 </span>
-                <Link href={`/assignments/${assignment.id}`} className="button secondary">
+                <Link to={`/assignments/${assignment.id}`} className="button secondary">
                   Plan milestones
                 </Link>
               </li>

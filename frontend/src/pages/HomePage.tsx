@@ -1,6 +1,6 @@
-import Link from "next/link";
+import { Link } from "react-router";
 
-export default function Home() {
+export default function HomePage() {
   return (
     <section className="card">
       <h1>Plan your assignments, rubric by rubric</h1>
@@ -8,10 +8,10 @@ export default function Home() {
         MindBridge turns each rubric criterion into a dated milestone, so you can see the work before the deadline.
       </p>
       <div className="form-row">
-        <Link href="/import" className="button">
+        <Link to="/import" className="button">
           Import from Canvas
         </Link>
-        <Link href="/assignments" className="button secondary">
+        <Link to="/assignments" className="button secondary">
           My assignments
         </Link>
       </div>

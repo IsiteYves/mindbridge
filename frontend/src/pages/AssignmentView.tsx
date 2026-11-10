@@ -1,7 +1,5 @@
-"use client";
-
-import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { Link } from "react-router";
 
 import { Assignment, Milestone, RubricCriterion, Status, apiRequest, errorMessage } from "@/lib/api";
 import { formatDate, fromLocalInput, toLocalInput } from "@/lib/dates";
@@ -156,7 +154,7 @@ export default function AssignmentView({ id }: { id: string }) {
           </button>
           {assignment && !assignment.deadline && (
             <p className="muted">
-              This assignment has no deadline. <Link href="/assignments">Set one</Link> before generating milestones.
+              This assignment has no deadline. <Link to="/assignments">Set one</Link> before generating milestones.
             </p>
           )}
         </form>

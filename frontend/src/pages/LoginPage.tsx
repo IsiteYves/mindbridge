@@ -1,13 +1,10 @@
-"use client";
-
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Link, useNavigate } from "react-router";
 
-import { apiRequest, errorMessage } from "@/lib/api";
+import { apiRequest, errorMessage, setToken } from "@/lib/api";
 
-export default function RegisterPage() {
-  const router = useRouter();
+export default function LoginPage() {
+  const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -17,11 +14,12 @@ export default function RegisterPage() {
     setBusy(true);
     setError(null);
     try {
-      await apiRequest("/auth/register", {
+      const { token } = await apiRequest<{ token: string }>("/auth/login", {
         method: "POST",
         body: { username: form.get("username"), password: form.get("password") },
       });
-      router.push("/login");
+      setToken(token);
+      navigate("/assignments");
     } catch (err) {
       setError(errorMessage(err));
       setBusy(false);
@@ -30,23 +28,23 @@ export default function RegisterPage() {
 
   return (
     <section className="card">
-      <h1>Create an account</h1>
+      <h1>Sign in</h1>
       <form className="form" onSubmit={handleSubmit}>
         <label className="field">
           Username
-          <input name="username" autoComplete="username" maxLength={64} required />
+          <input name="username" autoComplete="username" required />
         </label>
         <label className="field">
-          Password (at least 8 characters)
-          <input name="password" type="password" autoComplete="new-password" minLength={8} required />
+          Password
+          <input name="password" type="password" autoComplete="current-password" required />
         </label>
         {error && <p className="error">{error}</p>}
         <button className="button" type="submit" disabled={busy}>
-          {busy ? "Creating…" : "Create account"}
+          {busy ? "Signing in…" : "Sign in"}
         </button>
       </form>
       <p className="muted">
-        Already registered? <Link href="/login">Sign in</Link>
+        New here? <Link to="/register">Create an account</Link>
       </p>
     </section>
   );

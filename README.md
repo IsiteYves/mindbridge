@@ -9,7 +9,7 @@ MindBridge supports schedule planning. It does not diagnose or treat mental heal
 ```
 mindbridge/
 ├── backend/     Flask REST API and PostgreSQL access
-├── frontend/    Next.js (TypeScript) web client
+├── frontend/    React (TypeScript, Vite) web client
 └── docs/
     └── diagrams/  Architecture, class and use case diagrams
 ```
