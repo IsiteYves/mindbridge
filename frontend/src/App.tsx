@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router";
+import { Route, Routes } from "react-router";
 
 import NavBar from "@/components/NavBar";
 import AssignmentDetailPage from "@/pages/AssignmentDetailPage";
@@ -6,6 +6,7 @@ import AssignmentsPage from "@/pages/AssignmentsPage";
 import HomePage from "@/pages/HomePage";
 import ImportPage from "@/pages/ImportPage";
 import LoginPage from "@/pages/LoginPage";
+import NotFoundPage from "@/pages/NotFoundPage";
 import RegisterPage from "@/pages/RegisterPage";
 
 export default function App() {
@@ -21,7 +22,7 @@ export default function App() {
             <Route path="/import" element={<ImportPage />} />
             <Route path="/assignments" element={<AssignmentsPage />} />
             <Route path="/assignments/:id" element={<AssignmentDetailPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>
       </main>
