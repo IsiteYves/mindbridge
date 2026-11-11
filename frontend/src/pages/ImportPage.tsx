@@ -3,10 +3,8 @@ import { Link } from "react-router";
 
 import { apiRequest, CanvasCourse, errorMessage, ImportResult } from "@/lib/api";
 import { formatDate } from "@/lib/dates";
-import { useRequireAuth } from "@/lib/useRequireAuth";
 
 export default function ImportPage() {
-  useRequireAuth();
   const [token, setCanvasToken] = useState("");
   const [courses, setCourses] = useState<CanvasCourse[] | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
@@ -37,13 +35,6 @@ export default function ImportPage() {
       const imported = await apiRequest<ImportResult>("/canvas/import", {
         method: "POST",
         body: { token, course_ids: selected },
-      });
-      imported.assignments.forEach((assignment) => {
-        try {
-          sessionStorage.setItem(`mindbridge.rubric.${assignment.id}`, JSON.stringify(assignment.rubric));
-        } catch {
-          // Without storage the rubric review starts with an empty criterion; the student can type criteria.
-        }
       });
       setResult(imported);
       setCourses(null);

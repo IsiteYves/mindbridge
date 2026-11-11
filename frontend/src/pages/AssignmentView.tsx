@@ -1,76 +1,52 @@
-import { FormEvent, useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 
 import { Assignment, Milestone, RubricCriterion, Status, apiRequest, errorMessage } from "@/lib/api";
 import { formatDate, fromLocalInput, toLocalInput } from "@/lib/dates";
-import { useRequireAuth } from "@/lib/useRequireAuth";
 
 const STATUS_OPTIONS: Status[] = ["not_started", "in_progress", "done"];
 
-const subscribeNever = () => () => {};
-
-function readStoredRubricTitles(raw: string | null): string[] {
-  try {
-    const parsed = raw ? (JSON.parse(raw) as RubricCriterion[]) : [];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed.map((criterion) => criterion.title) : [""];
-  } catch {
-    return [""];
-  }
+function criteriaTitles(rubric: RubricCriterion[] | undefined): string[] {
+  return rubric && rubric.length > 0 ? rubric.map((criterion) => criterion.title) : [""];
 }
 
 export default function AssignmentView({ id }: { id: string }) {
-  useRequireAuth();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const storedRaw = useSyncExternalStore(
-    subscribeNever,
-    () => {
-      try {
-        return sessionStorage.getItem(`mindbridge.rubric.${id}`);
-      } catch {
-        return null;
-      }
-    },
-    () => null,
-  );
-  const [edits, setEdits] = useState<string[] | null>(null);
-  const criteria = edits ?? readStoredRubricTitles(storedRaw);
+  const [criteria, setCriteria] = useState<string[]>([""]);
   const [replace, setReplace] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const [loadedAssignment, loadedMilestones] = await Promise.all([
+  const fetchAssignment = useCallback(
+    () =>
+      Promise.all([
         apiRequest<Assignment>(`/assignments/${id}`),
         apiRequest<Milestone[]>(`/assignments/${id}/milestones`),
-      ]);
-      setAssignment(loadedAssignment);
-      setMilestones(loadedMilestones);
-    } catch (err) {
-      setError(errorMessage(err));
-    }
-  }, [id]);
+      ]),
+    [id],
+  );
+
+  function applyLoaded([loadedAssignment, loadedMilestones]: [Assignment, Milestone[]]) {
+    setAssignment(loadedAssignment);
+    setMilestones(loadedMilestones);
+    setCriteria(criteriaTitles(loadedAssignment.rubric));
+  }
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      apiRequest<Assignment>(`/assignments/${id}`),
-      apiRequest<Milestone[]>(`/assignments/${id}/milestones`),
-    ]).then(
-      ([loadedAssignment, loadedMilestones]) => {
-        if (cancelled) return;
-        setAssignment(loadedAssignment);
-        setMilestones(loadedMilestones);
+    fetchAssignment().then(
+      (loaded) => {
+        if (!cancelled) applyLoaded(loaded);
       },
-      (err) => {
+      (err: unknown) => {
         if (!cancelled) setError(errorMessage(err));
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [fetchAssignment]);
 
   async function generate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -86,7 +62,7 @@ export default function AssignmentView({ id }: { id: string }) {
         body: { criteria: cleaned, replace },
       });
       setReplace(false);
-      await load();
+      applyLoaded(await fetchAssignment());
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -95,7 +71,7 @@ export default function AssignmentView({ id }: { id: string }) {
   }
 
   function updateCriterion(index: number, value: string) {
-    setEdits(criteria.map((title, i) => (i === index ? value : title)));
+    setCriteria(criteria.map((title, i) => (i === index ? value : title)));
   }
 
   return (
@@ -127,7 +103,7 @@ export default function AssignmentView({ id }: { id: string }) {
                 <button
                   type="button"
                   className="button secondary"
-                  onClick={() => setEdits(criteria.filter((_, i) => i !== index))}
+                  onClick={() => setCriteria(criteria.filter((_, i) => i !== index))}
                 >
                   Remove
                 </button>
@@ -138,7 +114,7 @@ export default function AssignmentView({ id }: { id: string }) {
             <button
               type="button"
               className="button secondary"
-              onClick={() => setEdits([...criteria, ""])}
+              onClick={() => setCriteria([...criteria, ""])}
             >
               Add criterion
             </button>
