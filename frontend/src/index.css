@@ -734,3 +734,42 @@ h2 {
   font-weight: 600;
 }
 
+/* ── Check-in choices ─────────────────────────────── */
+.choice-set {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choice-set legend {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-strong);
+  cursor: pointer;
+}
+
+.choice:has(input:checked) {
+  border-color: var(--brand);
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.choice input {
+  accent-color: var(--brand);
+}
