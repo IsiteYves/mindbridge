@@ -11,6 +11,7 @@ import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ImportPage from "@/pages/ImportPage";
 import LoginPage from "@/pages/LoginPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+import PlanPage from "@/pages/PlanPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import VerifyEmailPage from "@/pages/VerifyEmailPage";
@@ -32,6 +33,7 @@ export default function App() {
       <Route path="/forgot-password" element={guest(<ForgotPasswordPage />)} />
       <Route path="/reset-password" element={guest(<ResetPasswordPage />)} />
       <Route path="/check-in" element={guard(<CheckInPage />)} />
+      <Route path="/plan" element={guard(<PlanPage />)} />
       <Route path="/import" element={guard(<ImportPage />)} />
       <Route path="/assignments" element={guard(<AssignmentsPage />)} />
       <Route path="/assignments/:id" element={guard(<AssignmentDetailPage />)} />
