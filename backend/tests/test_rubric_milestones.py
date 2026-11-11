@@ -79,3 +79,16 @@ def test_other_users_cannot_generate_milestones(client, make_user_headers):
     assignment_id = make_assignment(client, owner, future_deadline())
 
     assert generate(client, intruder, assignment_id).status_code == 404
+
+
+def test_generated_criteria_are_saved_on_the_assignment(client, make_user_headers):
+    headers = make_user_headers("student1")
+    assignment_id = make_assignment(client, headers, future_deadline())
+    generate(client, headers, assignment_id)
+
+    assignment = client.get(f"{ASSIGNMENTS}/{assignment_id}", headers=headers).get_json()
+
+    assert assignment["rubric"] == [
+        {"title": "Problem statement", "description": None},
+        {"title": "Method", "description": "Describe the design"},
+    ]

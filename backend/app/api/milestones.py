@@ -130,6 +130,8 @@ def create_milestones_from_rubric(assignment_id):
 
     for existing in list(assignment.milestones):
         db.session.delete(existing)
+    # Keep the criteria the student generated from, so the rubric review shows them on a later visit.
+    assignment.rubric = [{"title": title, "description": description} for title, description in cleaned]
     targets = milestone_targets(len(cleaned), now, assignment.deadline)
     created = [
         Milestone(assignment_id=assignment.id, title=title, description=description, target_date=target)

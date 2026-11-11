@@ -141,3 +141,12 @@ def test_import_is_scoped_to_the_current_user(canvas_app, client, make_user_head
     response = client.post(f"{CANVAS}/import", json=import_payload(), headers=make_user_headers("student2"))
 
     assert response.get_json()["created"] == 1
+
+
+def test_imported_rubric_is_saved_on_the_assignment(canvas_app, client, make_user_headers):
+    headers = make_user_headers("student1")
+    client.post(f"{CANVAS}/import", json=import_payload(), headers=headers)
+
+    listed = client.get(ASSIGNMENTS, headers=headers).get_json()
+    project = next(a for a in listed if a["canvas_id"] == "5001")
+    assert project["rubric"] == [{"title": "Analysis", "points": 10}]

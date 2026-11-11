@@ -1,4 +1,4 @@
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import JSON, Date, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 
 from app.extensions import db
 
@@ -32,6 +32,9 @@ class Assignment(TimestampMixin, db.Model):
     title = db.Column(String(255), nullable=False)
     status = db.Column(String(20), nullable=False, default="not_started")
     deadline = db.Column(DateTime(timezone=True))
+    # Rubric criteria as a list of {"title", "description"?, "points"?} objects. Filled by the Canvas
+    # import and replaced whenever the student generates milestones from edited criteria.
+    rubric = db.Column(JSON, nullable=True)
 
     user = db.relationship("User", back_populates="assignments")
     milestones = db.relationship("Milestone", back_populates="assignment", cascade="all, delete-orphan")

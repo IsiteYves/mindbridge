@@ -85,7 +85,8 @@ def import_assignments():
             assignment.course = course_names[course_id]
             assignment.title = item["title"]
             assignment.deadline = deadline
-            imported.append((assignment, item["rubric"]))
+            assignment.rubric = item["rubric"]
+            imported.append(assignment)
 
     try:
         db.session.commit()
@@ -97,5 +98,5 @@ def import_assignments():
         created=created,
         updated=updated,
         skipped=skipped,
-        assignments=[{**assignment_json(a), "rubric": rubric} for a, rubric in imported],
+        assignments=[assignment_json(a) for a in imported],
     )
