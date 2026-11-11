@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router";
 
-import { clearToken, getToken } from "@/lib/api";
+import { clearToken } from "@/lib/api";
 
 const LINKS = [
   { to: "/", label: "Overview" },
@@ -8,14 +8,14 @@ const LINKS = [
   { to: "/import", label: "Import from Canvas" },
 ];
 
+// Rendered only for signed-in users; logged-out visitors see PublicHeader instead.
 export default function NavBar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const signedIn = getToken() !== null;
 
   function signOut() {
     clearToken();
-    navigate("/login");
+    navigate("/login", { replace: true });
   }
 
   function isActive(to: string) {
@@ -49,15 +49,9 @@ export default function NavBar() {
       </div>
 
       <div className="sidebar-footer">
-        {signedIn ? (
-          <button type="button" className="link-button" onClick={signOut}>
-            Sign out
-          </button>
-        ) : (
-          <Link to="/login" className="nav-link">
-            Sign in
-          </Link>
-        )}
+        <button type="button" className="link-button" onClick={signOut}>
+          Sign out
+        </button>
       </div>
     </aside>
   );

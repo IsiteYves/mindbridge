@@ -1,6 +1,8 @@
-import { Route, Routes } from "react-router";
+import type { ReactElement } from "react";
+import { Navigate, Route, Routes } from "react-router";
 
 import NavBar from "@/components/NavBar";
+import PublicHeader from "@/components/PublicHeader";
 import AssignmentDetailPage from "@/pages/AssignmentDetailPage";
 import AssignmentsPage from "@/pages/AssignmentsPage";
 import HomePage from "@/pages/HomePage";
@@ -8,23 +10,43 @@ import ImportPage from "@/pages/ImportPage";
 import LoginPage from "@/pages/LoginPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import RegisterPage from "@/pages/RegisterPage";
+import { useSignedIn } from "@/lib/useSignedIn";
 
 export default function App() {
+  const signedIn = useSignedIn();
+
+  // Protected pages redirect to sign-in; sign-in pages redirect to the dashboard once signed in.
+  const guard = (page: ReactElement) => (signedIn ? page : <Navigate to="/login" replace />);
+  const guest = (page: ReactElement) => (signedIn ? <Navigate to="/assignments" replace /> : page);
+
+  const routes = (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/login" element={guest(<LoginPage />)} />
+      <Route path="/register" element={guest(<RegisterPage />)} />
+      <Route path="/import" element={guard(<ImportPage />)} />
+      <Route path="/assignments" element={guard(<AssignmentsPage />)} />
+      <Route path="/assignments/:id" element={guard(<AssignmentDetailPage />)} />
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  );
+
+  if (!signedIn) {
+    return (
+      <>
+        <PublicHeader />
+        <main className="public-main">
+          <div className="page">{routes}</div>
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <NavBar />
       <main className="admin-main">
-        <div className="page">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/import" element={<ImportPage />} />
-            <Route path="/assignments" element={<AssignmentsPage />} />
-            <Route path="/assignments/:id" element={<AssignmentDetailPage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </div>
+        <div className="page">{routes}</div>
       </main>
     </>
   );

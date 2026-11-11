@@ -3,7 +3,6 @@ import { Link } from "react-router";
 
 import { Assignment, Status, apiRequest, errorMessage } from "@/lib/api";
 import { formatDate, fromLocalInput } from "@/lib/dates";
-import { useRequireAuth } from "@/lib/useRequireAuth";
 
 const STATUS_LABEL = (status: Status) => status.replace("_", " ");
 
@@ -15,7 +14,6 @@ function byDeadline(a: Assignment, b: Assignment) {
 }
 
 export default function AssignmentsPage() {
-  useRequireAuth();
   const [assignments, setAssignments] = useState<Assignment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
