@@ -25,6 +25,7 @@ def assignment_json(assignment):
         "title": assignment.title,
         "status": assignment.status,
         "deadline": iso_utc(assignment.deadline),
+        "rubric": assignment.rubric or [],
     }
 
 

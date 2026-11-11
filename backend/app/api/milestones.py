@@ -1,3 +1,5 @@
+import datetime as dt
+
 from flask import Blueprint, abort, g, jsonify
 
 from app.api.assignments import owned_assignment_or_404
@@ -13,8 +15,11 @@ from app.api.common import (
 )
 from app.extensions import db
 from app.models import Milestone
+from app.services.scheduling import milestone_targets
 
 milestones_bp = Blueprint("milestones", __name__)
+
+MAX_RUBRIC_CRITERIA = 30
 
 
 def milestone_json(milestone):
@@ -90,6 +95,51 @@ def create_milestone(assignment_id):
     db.session.add(milestone)
     db.session.commit()
     return jsonify(milestone_json(milestone)), 201
+
+
+@milestones_bp.post("/assignments/<int:assignment_id>/milestones/from-rubric")
+@token_required
+def create_milestones_from_rubric(assignment_id):
+    assignment = owned_assignment_or_404(assignment_id)
+    data = json_body()
+
+    criteria = data.get("criteria")
+    if not isinstance(criteria, list) or not 0 < len(criteria) <= MAX_RUBRIC_CRITERIA:
+        return jsonify(error=f"criteria must be a list of 1 to {MAX_RUBRIC_CRITERIA} items"), 400
+    cleaned = []
+    for criterion in criteria:
+        if not isinstance(criterion, dict):
+            return jsonify(error="each criterion must be an object with a title"), 400
+        title = clean_text(criterion.get("title"), MAX_TITLE_LENGTH)
+        is_valid, description = _description(criterion.get("description"))
+        if title is None or not is_valid:
+            return jsonify(error="each criterion needs a title and a valid description"), 400
+        cleaned.append((title, description))
+
+    replace = data.get("replace", False)
+    if not isinstance(replace, bool):
+        return jsonify(error="replace must be true or false"), 400
+
+    now = dt.datetime.now(dt.timezone.utc)
+    if assignment.deadline is None:
+        return jsonify(error="Set a deadline before generating milestones"), 400
+    if assignment.deadline <= now:
+        return jsonify(error="The deadline has already passed"), 400
+    if assignment.milestones and not replace:
+        return jsonify(error="Milestones already exist; send replace=true to regenerate them"), 409
+
+    for existing in list(assignment.milestones):
+        db.session.delete(existing)
+    # Keep the criteria the student generated from, so the rubric review shows them on a later visit.
+    assignment.rubric = [{"title": title, "description": description} for title, description in cleaned]
+    targets = milestone_targets(len(cleaned), now, assignment.deadline)
+    created = [
+        Milestone(assignment_id=assignment.id, title=title, description=description, target_date=target)
+        for (title, description), target in zip(cleaned, targets)
+    ]
+    db.session.add_all(created)
+    db.session.commit()
+    return jsonify([milestone_json(m) for m in created]), 201
 
 
 @milestones_bp.get("/milestones/<int:milestone_id>")
