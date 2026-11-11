@@ -72,7 +72,6 @@ export default function AssignmentsPage() {
     <>
       <header className="page-header">
         <div className="stack">
-          <p className="eyebrow">Dashboard</p>
           <h1>My assignments</h1>
           <p className="muted">Each rubric criterion becomes a milestone before the deadline.</p>
         </div>
@@ -130,7 +129,7 @@ export default function AssignmentsPage() {
                     {assignment.course} · {formatDate(assignment.deadline)}
                   </p>
                 </div>
-                <span className={`status-pill status-${assignment.status}`}>{STATUS_LABEL(assignment.status)}</span>
+                <span className={`status-text status-${assignment.status}`}>{STATUS_LABEL(assignment.status)}</span>
               </li>
             ))}
           </ul>

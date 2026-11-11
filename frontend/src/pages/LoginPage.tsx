@@ -1,11 +1,12 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
-import { apiRequest, errorMessage, setToken } from "@/lib/api";
+import { apiRequest, ApiError, errorMessage, setToken } from "@/lib/api";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState<ApiError | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -16,33 +17,54 @@ export default function LoginPage() {
     try {
       const { token } = await apiRequest<{ token: string }>("/auth/login", {
         method: "POST",
-        body: { username: form.get("username"), password: form.get("password") },
+        body: { email, password: String(form.get("password") ?? "") },
       });
       setToken(token);
-      navigate("/assignments");
+      navigate("/assignments", { replace: true });
     } catch (err) {
-      setError(errorMessage(err));
+      setError(err instanceof ApiError ? err : new ApiError(errorMessage(err), 0));
       setBusy(false);
     }
   }
+
+  const needsVerification = error?.status === 403;
 
   return (
     <section className="card">
       <h1>Sign in</h1>
       <form className="form" onSubmit={handleSubmit}>
         <label className="field">
-          Username
-          <input name="username" autoComplete="username" required />
+          Email
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            required
+          />
         </label>
         <label className="field">
           Password
           <input name="password" type="password" autoComplete="current-password" required />
         </label>
-        {error && <p className="error">{error}</p>}
+        {error && (
+          <p className="error">
+            {error.message}
+            {needsVerification && (
+              <>
+                {" "}
+                <Link to={`/verify-email?email=${encodeURIComponent(email)}`}>Enter your code</Link>
+              </>
+            )}
+          </p>
+        )}
         <button className="button" type="submit" disabled={busy}>
           {busy ? "Signing in…" : "Sign in"}
         </button>
       </form>
+      <p className="muted">
+        <Link to={`/forgot-password?email=${encodeURIComponent(email)}`}>Forgot password?</Link>
+      </p>
       <p className="muted">
         New here? <Link to="/register">Create an account</Link>
       </p>
