@@ -9,8 +9,8 @@ from app.models import Assignment, LMSIntegration, Milestone, Reminder, StudyPla
 NOW = datetime(2026, 11, 1, 9, 0, tzinfo=timezone.utc)
 
 
-def build_user_graph(username="student1"):
-    user = User(username=username, password_hash="hash")
+def build_user_graph(name="student1"):
+    user = User(name=name, email=f"{name}@example.com", password_hash="hash")
     assignment = Assignment(user=user, course="HCI", title="Report", deadline=NOW, canvas_id="42")
     milestone = Milestone(assignment=assignment, title="Outline", target_date=NOW)
     plan = StudyPlan(user=user, start_date=date(2026, 11, 1), end_date=date(2026, 11, 7))
@@ -44,9 +44,9 @@ def test_deleting_milestone_removes_its_study_sessions(app):
     assert db.session.query(StudyPlan).count() == 1
 
 
-def test_username_must_be_unique(app):
+def test_email_must_be_unique(app):
     build_user_graph("same")
-    db.session.add(User(username="same", password_hash="hash"))
+    db.session.add(User(name="A", email="same@example.com", password_hash="hash"))
 
     with pytest.raises(IntegrityError):
         db.session.commit()

@@ -1,24 +1,34 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
+import PasswordRules from "@/components/PasswordRules";
 import { apiRequest, errorMessage } from "@/lib/api";
+import { unmetPasswordRules } from "@/lib/password";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const unmet = unmetPasswordRules(password);
+  const mismatch = confirm.length > 0 && confirm !== password;
+  const canSubmit = unmet.length === 0 && confirm === password && !busy;
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canSubmit) return;
     const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") ?? "").trim();
     setBusy(true);
     setError(null);
     try {
       await apiRequest("/auth/register", {
         method: "POST",
-        body: { username: form.get("username"), password: form.get("password") },
+        body: { name: String(form.get("name") ?? ""), email, password, confirm_password: confirm },
       });
-      navigate("/login");
+      navigate(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(errorMessage(err));
       setBusy(false);
@@ -27,18 +37,45 @@ export default function RegisterPage() {
 
   return (
     <section className="card">
-      <h1>Create an account</h1>
+      <h1>Create your account</h1>
+      <p className="muted">We will email you a 6-digit code to confirm the address.</p>
       <form className="form" onSubmit={handleSubmit}>
         <label className="field">
-          Username
-          <input name="username" autoComplete="username" maxLength={64} required />
+          Full name
+          <input name="name" autoComplete="name" maxLength={120} required />
         </label>
         <label className="field">
-          Password (at least 8 characters)
-          <input name="password" type="password" autoComplete="new-password" minLength={8} required />
+          Email
+          <input name="email" type="email" autoComplete="email" maxLength={255} required />
         </label>
+        <label className="field">
+          Password
+          <input
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            maxLength={128}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
+        </label>
+        <PasswordRules password={password} />
+        <label className="field">
+          Confirm password
+          <input
+            name="confirm_password"
+            type="password"
+            autoComplete="new-password"
+            maxLength={128}
+            value={confirm}
+            onChange={(event) => setConfirm(event.target.value)}
+            required
+          />
+        </label>
+        {mismatch && <p className="error">Passwords do not match.</p>}
         {error && <p className="error">{error}</p>}
-        <button className="button" type="submit" disabled={busy}>
+        <button className="button" type="submit" disabled={!canSubmit}>
           {busy ? "Creating…" : "Create account"}
         </button>
       </form>

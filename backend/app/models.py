@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Date, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 
 from app.extensions import db
 
@@ -11,7 +11,9 @@ class User(TimestampMixin, db.Model):
     __tablename__ = "users"
 
     id = db.Column(Integer, primary_key=True)
-    username = db.Column(String(64), unique=True, nullable=False)
+    name = db.Column(String(120), nullable=False)
+    email = db.Column(String(255), unique=True, nullable=False)
+    email_verified = db.Column(Boolean, nullable=False, default=False, server_default="false")
     password_hash = db.Column(String(255), nullable=False)
 
     assignments = db.relationship("Assignment", back_populates="user", cascade="all, delete-orphan")
@@ -106,6 +108,17 @@ class WellnessCheckin(TimestampMixin, db.Model):
     stress_level = db.Column(Integer, nullable=False)
 
     user = db.relationship("User", back_populates="wellness_checkins")
+
+
+class VerificationCode(TimestampMixin, db.Model):
+    __tablename__ = "verification_codes"
+
+    id = db.Column(Integer, primary_key=True)
+    user_id = db.Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    purpose = db.Column(String(20), nullable=False)
+    code_hash = db.Column(String(255), nullable=False)
+    expires_at = db.Column(DateTime(timezone=True), nullable=False)
+    attempts = db.Column(Integer, nullable=False, default=0)
 
 
 class LMSIntegration(TimestampMixin, db.Model):
