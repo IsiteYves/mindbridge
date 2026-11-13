@@ -20,7 +20,7 @@ import { useSignedIn } from "@/lib/useSignedIn";
 export default function App() {
   const signedIn = useSignedIn();
 
-  // Protected pages redirect to sign-in; sign-in pages redirect to the dashboard once signed in.
+  // Protected pages redirect to sign-in and then sign-in pages redirect to the dashboard once signed in.
   const guard = (page: ReactElement) => (signedIn ? page : <Navigate to="/login" replace />);
   const guest = (page: ReactElement) => (signedIn ? <Navigate to="/assignments" replace /> : page);
 

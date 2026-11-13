@@ -24,6 +24,6 @@ export type Checkin = {
 };
 
 export const MOOD_LABEL = (mood: string) => MOODS.find((m) => m.value === mood)?.label ?? mood;
-
 // The server records check-ins against its UTC calendar date, so "today" is compared the same way.
+
 export const todayUtc = () => new Date().toISOString().slice(0, 10);
