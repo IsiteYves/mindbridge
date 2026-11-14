@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
+import AuthLayout from "@/components/AuthLayout";
 import PasswordRules from "@/components/PasswordRules";
 import { apiRequest, errorMessage } from "@/lib/api";
 import { unmetPasswordRules } from "@/lib/password";
@@ -36,9 +37,11 @@ export default function RegisterPage() {
   }
 
   return (
-    <section className="card">
-      <h1>Create your account</h1>
-      <p className="muted">We will email you a 6-digit code to confirm the address.</p>
+    <AuthLayout
+      variant="register"
+      title="Create your account"
+      subtitle="We will email you a 6-digit code to confirm the address."
+    >
       <form className="form" onSubmit={handleSubmit}>
         <label className="field">
           Full name
@@ -82,6 +85,6 @@ export default function RegisterPage() {
       <p className="muted">
         Already registered? <Link to="/login">Sign in</Link>
       </p>
-    </section>
+    </AuthLayout>
   );
 }

@@ -3,8 +3,10 @@ import { Navigate, Route, Routes } from "react-router";
 
 import NavBar from "@/components/NavBar";
 import PublicHeader from "@/components/PublicHeader";
+import SiteFooter from "@/components/SiteFooter";
 import AssignmentDetailPage from "@/pages/AssignmentDetailPage";
 import AssignmentsPage from "@/pages/AssignmentsPage";
+import CheckInPage from "@/pages/CheckInPage";
 import HomePage from "@/pages/HomePage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ImportPage from "@/pages/ImportPage";
@@ -31,6 +33,7 @@ export default function App() {
       <Route path="/verify-email" element={guest(<VerifyEmailPage />)} />
       <Route path="/forgot-password" element={guest(<ForgotPasswordPage />)} />
       <Route path="/reset-password" element={guest(<ResetPasswordPage />)} />
+      <Route path="/check-in" element={guard(<CheckInPage />)} />
       <Route path="/plan" element={guard(<PlanPage />)} />
       <Route path="/import" element={guard(<ImportPage />)} />
       <Route path="/assignments" element={guard(<AssignmentsPage />)} />
@@ -46,6 +49,7 @@ export default function App() {
         <main className="public-main">
           <div className="page">{routes}</div>
         </main>
+        <SiteFooter />
       </>
     );
   }
