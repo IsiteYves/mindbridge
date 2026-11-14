@@ -132,3 +132,13 @@ class LMSIntegration(TimestampMixin, db.Model):
     last_synced_at = db.Column(DateTime(timezone=True))
 
     user = db.relationship("User", back_populates="lms_integrations")
+
+
+class SupportMessage(TimestampMixin, db.Model):
+    __tablename__ = "support_messages"
+
+    id = db.Column(Integer, primary_key=True)
+    name = db.Column(String(120), nullable=False)
+    email = db.Column(String(255), nullable=False)
+    message = db.Column(String(2000), nullable=False)
+    status = db.Column(String(20), nullable=False, default="new", server_default="new")
