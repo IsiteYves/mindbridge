@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router";
 
 import NavBar from "@/components/NavBar";
 import PublicHeader from "@/components/PublicHeader";
+import SiteFooter from "@/components/SiteFooter";
 import AssignmentDetailPage from "@/pages/AssignmentDetailPage";
 import AssignmentsPage from "@/pages/AssignmentsPage";
 import CheckInPage from "@/pages/CheckInPage";
@@ -46,6 +47,7 @@ export default function App() {
         <main className="public-main">
           <div className="page">{routes}</div>
         </main>
+        <SiteFooter />
       </>
     );
   }

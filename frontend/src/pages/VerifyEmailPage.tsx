@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
+import AuthLayout from "@/components/AuthLayout";
 import { apiRequest, errorMessage, setToken } from "@/lib/api";
 
 export default function VerifyEmailPage() {
@@ -44,9 +45,7 @@ export default function VerifyEmailPage() {
   }
 
   return (
-    <section className="card">
-      <h1>Check your email</h1>
-      <p className="muted">Enter the 6-digit code we sent. It expires in 10 minutes.</p>
+    <AuthLayout variant="verify" title="Check your email" subtitle="Enter the 6-digit code we sent. It expires in 10 minutes.">
       <form className="form" onSubmit={verify}>
         <label className="field">
           Email
@@ -76,6 +75,6 @@ export default function VerifyEmailPage() {
       <p className="muted">
         Wrong address? <Link to="/register">Start again</Link>
       </p>
-    </section>
+    </AuthLayout>
   );
 }
