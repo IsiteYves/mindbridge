@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
+import AuthLayout from "@/components/AuthLayout";
 import { apiRequest, errorMessage } from "@/lib/api";
 
 export default function ForgotPasswordPage() {
@@ -25,9 +26,11 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <section className="card">
-      <h1>Reset your password</h1>
-      <p className="muted">Enter your account email. If it exists, we will send a 6-digit reset code.</p>
+    <AuthLayout
+      variant="forgot"
+      title="Reset your password"
+      subtitle="Enter your account email. If it exists, we will send a 6-digit reset code."
+    >
       <form className="form" onSubmit={handleSubmit}>
         <label className="field">
           Email
@@ -41,6 +44,6 @@ export default function ForgotPasswordPage() {
       <p className="muted">
         <Link to="/login">Back to sign in</Link>
       </p>
-    </section>
+    </AuthLayout>
   );
 }

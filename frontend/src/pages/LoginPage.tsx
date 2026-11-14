@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
+import AuthLayout from "@/components/AuthLayout";
 import { apiRequest, ApiError, errorMessage, setToken } from "@/lib/api";
 
 export default function LoginPage() {
@@ -30,8 +31,7 @@ export default function LoginPage() {
   const needsVerification = error?.status === 403;
 
   return (
-    <section className="card">
-      <h1>Sign in</h1>
+    <AuthLayout variant="login" title="Sign in" subtitle="Use the email and password you registered with.">
       <form className="form" onSubmit={handleSubmit}>
         <label className="field">
           Email
@@ -68,6 +68,6 @@ export default function LoginPage() {
       <p className="muted">
         New here? <Link to="/register">Create an account</Link>
       </p>
-    </section>
+    </AuthLayout>
   );
 }

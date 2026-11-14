@@ -4,6 +4,7 @@ import { clearToken } from "@/lib/api";
 
 const LINKS = [
   { to: "/assignments", label: "Assignments" },
+  { to: "/check-in", label: "Daily check-in" },
   { to: "/import", label: "Import from Canvas" },
 ];
 

@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
+import AuthLayout from "@/components/AuthLayout";
 import PasswordRules from "@/components/PasswordRules";
 import { apiRequest, errorMessage } from "@/lib/api";
 import { unmetPasswordRules } from "@/lib/password";
@@ -39,22 +40,18 @@ export default function ResetPasswordPage() {
 
   if (done) {
     return (
-      <section className="card">
-        <h1>Password updated</h1>
-        <p className="muted">You can now sign in with your new password.</p>
+      <AuthLayout variant="reset" title="Password updated" subtitle="You can now sign in with your new password.">
         <div className="form-row">
           <Link to="/login" className="button">
             Sign in
           </Link>
         </div>
-      </section>
+      </AuthLayout>
     );
   }
 
   return (
-    <section className="card">
-      <h1>Choose a new password</h1>
-      <p className="muted">Enter the code from your email and your new password.</p>
+    <AuthLayout variant="reset" title="Choose a new password" subtitle="Enter the code from your email and your new password.">
       <form className="form" onSubmit={handleSubmit}>
         <label className="field">
           Email
@@ -104,6 +101,6 @@ export default function ResetPasswordPage() {
       <p className="muted">
         Need a new code? <Link to={`/forgot-password?email=${encodeURIComponent(email)}`}>Request one</Link>
       </p>
-    </section>
+    </AuthLayout>
   );
 }
