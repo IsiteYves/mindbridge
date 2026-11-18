@@ -142,3 +142,51 @@ class SupportMessage(TimestampMixin, db.Model):
     email = db.Column(String(255), nullable=False)
     message = db.Column(String(2000), nullable=False)
     status = db.Column(String(20), nullable=False, default="new", server_default="new")
+
+
+ 
+
+
+class FocusSession(TimestampMixin, db.Model):
+    """One focus-timer run (Pomodoro-style). Optionally tied to the milestone the
+    student was working on, so time-on-task can later be shown per milestone.
+
+    `milestone_id` uses ON DELETE SET NULL rather than CASCADE, unlike most
+    foreign keys in this file: a student deleting a milestone from their plan
+    should not erase the focus history they already logged against it.
+    """
+
+    __tablename__ = "focus_sessions"
+
+    id = db.Column(Integer, primary_key=True)
+    user_id = db.Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    milestone_id = db.Column(Integer, ForeignKey("milestones.id", ondelete="SET NULL"), nullable=True, index=True)
+    planned_minutes = db.Column(Integer, nullable=False, default=25, server_default="25")
+    started_at = db.Column(DateTime(timezone=True), nullable=False)
+    ended_at = db.Column(DateTime(timezone=True), nullable=True)
+    completed = db.Column(Boolean, nullable=False, default=False, server_default="false")
+
+    user = db.relationship("User", back_populates="focus_sessions")
+    milestone = db.relationship("Milestone")
+
+
+class DailyGoal(TimestampMixin, db.Model):
+    """A student's 'today' checklist: at most a few small, concrete steps, picked
+    once and then stable for the day even if the student edits their plan later.
+
+    `items` is a JSON list of {"label", "kind", "ref_id", "done"} objects rather
+    than its own table: a goal is read and rewritten as a whole, never joined or
+    queried by field, so a child table would add a relationship with no real use.
+    See app/services/goals.py for the pure helpers that read and update it.
+    """
+
+    __tablename__ = "daily_goals"
+    __table_args__ = (UniqueConstraint("user_id", "goal_date", name="uq_daily_goal_user_date"),)
+
+    id = db.Column(Integer, primary_key=True)
+    user_id = db.Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    goal_date = db.Column(Date, nullable=False)
+    target_count = db.Column(Integer, nullable=False, default=3, server_default="3")
+    items = db.Column(JSON, nullable=False, default=list)
+
+    user = db.relationship("User", back_populates="daily_goals")
