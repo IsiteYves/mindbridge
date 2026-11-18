@@ -2,8 +2,13 @@ import { Link, useLocation, useNavigate } from "react-router";
 
 import { clearToken } from "@/lib/api";
 
+// "Home" is deliberately not listed yet: for a signed-in user "/" redirects
+// straight to "/assignments" today (see App.tsx), so a separate Home entry
+// would either duplicate this one or point at a page that doesn't exist. A
+// real dashboard/overview surface is planned (see the assignment planner
+// work later this week) and gets its own nav entry once it exists.
 const LINKS = [
-  { to: "/assignments", label: "Assignments" },
+  { to: "/assignments", label: "My assignments" },
   { to: "/check-in", label: "Daily check-in" },
   { to: "/plan", label: "Study plan" },
   { to: "/import", label: "Import from Canvas" },
@@ -25,7 +30,7 @@ export default function NavBar() {
 
   return (
     <aside className="sidebar">
-      <Link to="/" className="brand">
+      <Link to="/assignments" className="brand">
         <span className="brand-mark" aria-hidden="true">
           M
         </span>
@@ -45,7 +50,18 @@ export default function NavBar() {
         ))}
       </nav>
 
+      <div className="nudge-card">
+        <p className="nudge-title">One step at a time.</p>
+        <p className="muted">Small milestones make room for your bigger ambitions.</p>
+      </div>
+
       <div className="sidebar-footer">
+        <Link to="/planning-guide" className="link-button">
+          Planning guide
+        </Link>
+        <Link to="/settings" className="link-button">
+          Settings
+        </Link>
         <button type="button" className="link-button" onClick={signOut}>
           Sign out
         </button>
