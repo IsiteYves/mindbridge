@@ -55,7 +55,6 @@ class Milestone(TimestampMixin, db.Model):
     target_date = db.Column(DateTime(timezone=True), nullable=False)
     status = db.Column(String(20), nullable=False, default="not_started")
     position = db.Column(Integer, nullable=False, default=0, server_default="0")
-    # Share of the rubric this milestone covers, 0-100. Null means "not weighted yet".
     weight = db.Column(Integer, nullable=True)
 
     assignment = db.relationship("Assignment", back_populates="milestones")
@@ -90,6 +89,10 @@ class StudySession(TimestampMixin, db.Model):
 
 
 class Reminder(TimestampMixin, db.Model):
+    """One reminder delivery. A row is written when a reminder actually fires, not
+    when it becomes possible to fire, so this table is a record of what was sent,
+    not a schedule of what will be.
+    """
 
     __tablename__ = "reminders"
     __table_args__ = (
@@ -97,6 +100,7 @@ class Reminder(TimestampMixin, db.Model):
             "user_id", "assignment_id", "milestone_id", "kind", "offset_days", "fired_for_date",
             name="uq_reminder_delivery",
         ),
+        # The constraint above does not protect an assignment-level reminder
         Index(
             "uq_reminder_delivery_no_milestone",
             "user_id", "assignment_id", "kind", "offset_days", "fired_for_date",
@@ -112,6 +116,8 @@ class Reminder(TimestampMixin, db.Model):
     milestone_id = db.Column(Integer, ForeignKey("milestones.id", ondelete="CASCADE"), nullable=True, index=True)
     # "milestone" | "deadline" | "new_item" | "overdue"
     kind = db.Column(String(20), nullable=False)
+    # Days before the target: 5, 2, 1 or 0. Null for "new_item" and "overdue", which are
+    # not expressed as an offset from a date.
     offset_days = db.Column(Integer, nullable=True)
     fired_for_date = db.Column(Date, nullable=False)
     sent_at = db.Column(DateTime(timezone=True), nullable=True)
@@ -123,6 +129,7 @@ class Reminder(TimestampMixin, db.Model):
 
 
 class ReminderPreference(TimestampMixin, db.Model):
+    """Which day-before offsets a student wants reminders for."""
 
     __tablename__ = "reminder_preferences"
     __table_args__ = (UniqueConstraint("user_id", "offset_days", name="uq_reminder_pref_user_offset"),)
@@ -169,12 +176,15 @@ class LMSIntegration(TimestampMixin, db.Model):
     status = db.Column(String(20), nullable=False, default="connected")
     last_synced_at = db.Column(DateTime(timezone=True))
     access_token_encrypted = db.Column(String(1024), nullable=True)
+    # The Canvas course ids chosen the last time this was connected, so a
+    # later sync can re-pull the same courses without asking again.
     selected_course_ids = db.Column(JSON, nullable=True)
 
     user = db.relationship("User", back_populates="lms_integrations")
 
 
 class FocusSession(TimestampMixin, db.Model):
+    """One focus-timer run (Pomodoro-style)."""
 
     __tablename__ = "focus_sessions"
 
@@ -191,6 +201,7 @@ class FocusSession(TimestampMixin, db.Model):
 
 
 class DailyGoal(TimestampMixin, db.Model):
+    """A student's 'today's checklist"""
 
     __tablename__ = "daily_goals"
     __table_args__ = (UniqueConstraint("user_id", "goal_date", name="uq_daily_goal_user_date"),)
