@@ -15,6 +15,12 @@ class User(TimestampMixin, db.Model):
     email = db.Column(String(255), unique=True, nullable=False)
     email_verified = db.Column(Boolean, nullable=False, default=False, server_default="false")
     password_hash = db.Column(String(255), nullable=False)
+    # Login brute-force protection. Mirrors the attempt-limiting already used
+    # for verification codes (see VerificationCode and app/services/codes.py)
+    # rather than a separate mechanism: too many wrong passwords in a row
+    # locks the account for a short, fixed cool-off instead of indefinitely,
+    # so a genuine owner who forgot their password is never locked out for
+    # good, only slowed down the same way a code-guesser already is.
     failed_login_attempts = db.Column(Integer, nullable=False, default=0, server_default="0")
     locked_until = db.Column(DateTime(timezone=True), nullable=True)
 
@@ -39,6 +45,8 @@ class Assignment(TimestampMixin, db.Model):
     title = db.Column(String(255), nullable=False)
     status = db.Column(String(20), nullable=False, default="not_started")
     deadline = db.Column(DateTime(timezone=True))
+    # Rubric criteria as a list of {"title", "description"?, "points"?} objects. Filled by the Canvas
+    # import and replaced whenever the student generates milestones from edited criteria.
     rubric = db.Column(JSON, nullable=True)
 
     user = db.relationship("User", back_populates="assignments")
@@ -54,8 +62,13 @@ class Milestone(TimestampMixin, db.Model):
     description = db.Column(String(2000))
     target_date = db.Column(DateTime(timezone=True), nullable=False)
     status = db.Column(String(20), nullable=False, default="not_started")
+    # Explicit student ordering for the editable plan list. The milestone rail is a
+    # time axis and always reads by target_date instead, so position and target_date
+    # can disagree without anything breaking: a student can reorder how their plan
+    # reads without that reordering fighting the timeline's own chronology.
     position = db.Column(Integer, nullable=False, default=0, server_default="0")
     # Share of the rubric this milestone covers, 0-100. Null means "not weighted yet".
+    # Weights drive effort-proportional spacing; they are never required.
     weight = db.Column(Integer, nullable=True)
 
     assignment = db.relationship("Assignment", back_populates="milestones")
@@ -90,6 +103,18 @@ class StudySession(TimestampMixin, db.Model):
 
 
 class Reminder(TimestampMixin, db.Model):
+    """One reminder delivery. A row is written when a reminder actually fires, not
+    when it becomes possible to fire, so this table is a record of what was sent,
+    not a schedule of what will be. Default offsets are seeded per user as
+    ReminderPreference rows and read by the worker; see that model below.
+
+    `fired_for_date` is the calendar day this delivery belongs to. For a
+    day-before reminder there is exactly one delivery per offset, so it doubles
+    as a uniqueness guard. For an overdue reminder, which fires once a day until
+    the work is done, a new row is written each day it fires, with
+    `fired_for_date` advancing, so "already sent today" is one indexed lookup
+    rather than a date-range scan.
+    """
 
     __tablename__ = "reminders"
     __table_args__ = (
@@ -97,6 +122,12 @@ class Reminder(TimestampMixin, db.Model):
             "user_id", "assignment_id", "milestone_id", "kind", "offset_days", "fired_for_date",
             name="uq_reminder_delivery",
         ),
+        # The constraint above does not protect an assignment-level reminder
+        # (milestone_id IS NULL): Postgres treats two NULLs as distinct from
+        # each other in a unique index, so two such rows for the same
+        # (user, assignment, kind, offset, date) would not violate it. This
+        # partial index closes that gap for exactly the NULL case; see
+        # migrations/versions/2d8f61a3c9e7_reminder_null_milestone_uniqueness.py.
         Index(
             "uq_reminder_delivery_no_milestone",
             "user_id", "assignment_id", "kind", "offset_days", "fired_for_date",
@@ -112,6 +143,8 @@ class Reminder(TimestampMixin, db.Model):
     milestone_id = db.Column(Integer, ForeignKey("milestones.id", ondelete="CASCADE"), nullable=True, index=True)
     # "milestone" | "deadline" | "new_item" | "overdue"
     kind = db.Column(String(20), nullable=False)
+    # Days before the target: 5, 2, 1 or 0. Null for "new_item" and "overdue", which are
+    # not expressed as an offset from a date.
     offset_days = db.Column(Integer, nullable=True)
     fired_for_date = db.Column(Date, nullable=False)
     sent_at = db.Column(DateTime(timezone=True), nullable=True)
@@ -123,6 +156,12 @@ class Reminder(TimestampMixin, db.Model):
 
 
 class ReminderPreference(TimestampMixin, db.Model):
+    """Which day-before offsets a student wants reminders for. Seeded with
+    5, 2, 1 and 0 (all enabled) when a user registers; editable afterwards in
+    Settings. "overdue" and "new_item" reminders are not covered here, since
+    they are not optional: a student is always told about work that slipped
+    past its deadline or appeared from a fresh Canvas import.
+    """
 
     __tablename__ = "reminder_preferences"
     __table_args__ = (UniqueConstraint("user_id", "offset_days", name="uq_reminder_pref_user_offset"),)
@@ -168,13 +207,24 @@ class LMSIntegration(TimestampMixin, db.Model):
     provider = db.Column(String(50), nullable=False)
     status = db.Column(String(20), nullable=False, default="connected")
     last_synced_at = db.Column(DateTime(timezone=True))
+    # Fernet ciphertext, never the raw Canvas token. See app/services/crypto.py.
+    # Nullable so a row can exist (status tracking) before a token is ever stored.
     access_token_encrypted = db.Column(String(1024), nullable=True)
+    # The Canvas course ids chosen the last time this was connected, so a
+    # later sync can re-pull the same courses without asking again.
     selected_course_ids = db.Column(JSON, nullable=True)
 
     user = db.relationship("User", back_populates="lms_integrations")
 
 
 class FocusSession(TimestampMixin, db.Model):
+    """One focus-timer run (Pomodoro-style). Optionally tied to the milestone the
+    student was working on, so time-on-task can later be shown per milestone.
+
+    `milestone_id` uses ON DELETE SET NULL rather than CASCADE, unlike most
+    foreign keys in this file: a student deleting a milestone from their plan
+    should not erase the focus history they already logged against it.
+    """
 
     __tablename__ = "focus_sessions"
 
@@ -191,6 +241,14 @@ class FocusSession(TimestampMixin, db.Model):
 
 
 class DailyGoal(TimestampMixin, db.Model):
+    """A student's 'today' checklist: at most a few small, concrete steps, picked
+    once and then stable for the day even if the student edits their plan later.
+
+    `items` is a JSON list of {"label", "kind", "ref_id", "done"} objects rather
+    than its own table: a goal is read and rewritten as a whole, never joined or
+    queried by field, so a child table would add a relationship with no real use.
+    See app/services/goals.py for the pure helpers that read and update it.
+    """
 
     __tablename__ = "daily_goals"
     __table_args__ = (UniqueConstraint("user_id", "goal_date", name="uq_daily_goal_user_date"),)
