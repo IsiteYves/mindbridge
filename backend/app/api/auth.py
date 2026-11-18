@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
-from app.models import User
+from app.models import ReminderPreference, User
 from app.services.codes import check_code, issue_code
 from app.services.mailer import MailError, send_code
 from app.services.passwords import MAX_PASSWORD_LENGTH, password_problems
@@ -19,6 +19,18 @@ MAX_NAME_LENGTH = 120
 MAX_EMAIL_LENGTH = 255
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 TOKEN_LIFETIME = dt.timedelta(hours=1)
+# Login brute-force protection. Five wrong passwords in a row locks the
+# account for 15 minutes — long enough to make guessing impractical, short
+# enough that a genuine owner who mistyped their password a few times is
+# never locked out for good. Matches the attempt limit already used for
+# verification codes (app/services/codes.py's MAX_ATTEMPTS).
+MAX_LOGIN_ATTEMPTS = 5
+LOGIN_LOCKOUT = dt.timedelta(minutes=15)
+# Every new account starts with reminders on for all four day-before offsets.
+# A student can turn any of these off afterwards in Settings; see
+# app/api/notifications.py. Overdue and new-item reminders are not seeded
+# here because they are not optional.
+DEFAULT_REMINDER_OFFSETS = (5, 2, 1, 0)
 
 
 @auth_bp.errorhandler(MailError)
@@ -116,6 +128,11 @@ def register():
         db.session.rollback()
         return jsonify(error="An account with this email already exists"), 409
 
+    db.session.add_all(
+        ReminderPreference(user_id=user.id, offset_days=offset, enabled=True)
+        for offset in DEFAULT_REMINDER_OFFSETS
+    )
+
     code = issue_code(user, "signup")
     db.session.commit()
     send_code(email, "signup", code)
@@ -156,12 +173,27 @@ def login():
     email = _clean_email(data.get("email"))
     password = data.get("password")
     user = _find_user(email)
+    now = dt.datetime.now(dt.timezone.utc)
 
-    if user is None or not isinstance(password, str) or not check_password_hash(user.password_hash, password):
+    # A locked account gets the same message as a wrong password: revealing
+    # "this account is locked" would itself leak that the account exists and
+    # is currently under attack, on top of letting an attacker learn when a
+    # lockout clears by polling.
+    locked = user is not None and user.locked_until is not None and user.locked_until > now
+    if locked or user is None or not isinstance(password, str) or not check_password_hash(user.password_hash, password):
+        if user is not None and not locked:
+            user.failed_login_attempts += 1
+            if user.failed_login_attempts >= MAX_LOGIN_ATTEMPTS:
+                user.locked_until = now + LOGIN_LOCKOUT
+            db.session.commit()
         return jsonify(error="Invalid email or password"), 401
+
     if not user.email_verified:
         return jsonify(error="Verify your email before signing in"), 403
 
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    db.session.commit()
     return jsonify(token=_issue_token(user)), 200
 
 
@@ -194,6 +226,11 @@ def reset_password():
     user.password_hash = generate_password_hash(data["password"])
     # Resetting the password also proves the email belongs to the user.
     user.email_verified = True
+    # A verified reset is stronger proof of ownership than a login attempt
+    # ever is, so any lockout from earlier guesses against the old password
+    # is cleared rather than making the owner also wait it out.
+    user.failed_login_attempts = 0
+    user.locked_until = None
     db.session.commit()
     return jsonify(message="Your password has been reset. You can sign in now."), 200
 
@@ -202,3 +239,13 @@ def reset_password():
 def logout():
     # Tokens are stateless, so the client discards its token and it expires after one hour.
     return jsonify(message="Logged out"), 200
+
+
+@auth_bp.get("/me")
+@token_required
+def me():
+    # The app shell needs the student's name and initials (for the sidebar and the
+    # avatar) without asking the client to decode its own JWT. The token carries
+    # only a user id on purpose, so this is the one place that turns it into a name.
+    user = g.current_user
+    return jsonify(id=user.id, name=user.name, email=user.email)
