@@ -50,21 +50,15 @@ export default function FocusTimerCard() {
     }
   }
 
-  // A one-second countdown driven by a chain of timeouts rather than a single
-  // interval: each tick schedules only the next one, so there is nowhere for
-  // the "it finished" side effect to run except here, exactly once, when
-  // remaining actually reaches zero. Ending the session is itself async, but
-  // by the time it resolves `session` is already null, so this effect cannot
-  // re-fire the same ending twice.
+  // A one-second countdown driven by a chain of timeouts rather than a single interval
   useEffect(() => {
     if (!session) return;
     if (remaining <= 0) {
-      end(true); // the planned time ran out, so this session finished, not stopped early
+      end(true);
       return;
     }
     const id = window.setTimeout(() => setRemaining((value) => value - 1), 1000);
     return () => window.clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, remaining]);
 
   async function start() {

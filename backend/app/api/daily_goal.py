@@ -1,11 +1,4 @@
-"""The "today" checklist. See app/services/goals.py for the pure logic this
-file is a thin wrapper around, and app/models.py's DailyGoal for why it is
-stored as a JSON snapshot rather than its own child table.
-
-A goal is created the first time a student asks for today's, picked from
-their nearest-due open milestones, and is then stable for the rest of the day
-even if they edit their plan afterwards.
-"""
+"""The "today" checklist."""
 
 import datetime as dt
 
@@ -38,8 +31,7 @@ def goal_json(goal):
 
 
 def _candidate_tasks(user_id, limit):
-    """The nearest-due open milestones across all the student's assignments,
-    soonest first — what a fresh "today" goal is picked from."""
+    """The nearest-due open milestones across all the student's assignments"""
     milestones = (
         db.session.query(Milestone)
         .join(Assignment)

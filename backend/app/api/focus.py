@@ -1,9 +1,4 @@
-"""Focus-timer sessions. A session is started, optionally tied to a milestone,
-and later marked ended. No endpoint lets a client set ended_at to anything but
-"now" — a session's duration is measured by the server, not asserted by the
-client, so the stats built on top of this (minutes focused, sessions per day)
-cannot be padded by a client sending an arbitrary end time.
-"""
+"""Focus-timer sessions."""
 
 import datetime as dt
 
