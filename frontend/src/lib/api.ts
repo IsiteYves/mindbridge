@@ -43,6 +43,8 @@ export type ImportResult = {
 
 export type CanvasCourse = { id: string; name: string };
 
+export type CurrentUser = { id: number; name: string; email: string};
+
 export class ApiError extends Error {
   status: number;
 

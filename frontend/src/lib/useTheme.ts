@@ -37,7 +37,7 @@ function subscribe(onChange: () => void): () => void {
 }
 
 export function useTheme(): [Theme, () => void] {
-  const theme = useSyncExternalStore(subscribe, currentTheme, () => "light");
+  const theme = useSyncExternalStore<Theme>(subscribe, currentTheme, () => "light");
 
   const toggle = useCallback(() => {
     const next: Theme = currentTheme() === "dark" ? "light" : "dark";

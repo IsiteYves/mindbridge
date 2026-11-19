@@ -16,7 +16,6 @@ import NotFoundPage from "@/pages/NotFoundPage";
 import PlanPage from "@/pages/PlanPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
-import SettingsPage from "@/pages/SettingsPage";
 import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import { useSignedIn } from "@/lib/useSignedIn";
 
@@ -40,8 +39,6 @@ export default function App() {
       <Route path="/import" element={guard(<ImportPage />)} />
       <Route path="/assignments" element={guard(<AssignmentsPage />)} />
       <Route path="/assignments/:id" element={guard(<AssignmentDetailPage />)} />
-      <Route path="/settings" element={guard(<SettingsPage />)} />
-      <Route path="/planning-guide" element={guard(<PlanningGuidePage />)} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
