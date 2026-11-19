@@ -1,19 +1,37 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 
+import MilestoneRail from "@/components/MilestoneRail";
+import PlanReview from "@/components/PlanReview";
+import WorkloadHeatmap from "@/components/WorkloadHeatmap";
 import { Assignment, Milestone, RubricCriterion, Status, apiRequest, errorMessage } from "@/lib/api";
 import { formatDate, fromLocalInput, toLocalInput } from "@/lib/dates";
 
 const STATUS_OPTIONS: Status[] = ["not_started", "in_progress", "done"];
+const STATUS_LABEL = (status: Status) => status.replace("_", " ");
 
-function criteriaTitles(rubric: RubricCriterion[] | undefined): string[] {
-  return rubric && rubric.length > 0 ? rubric.map((criterion) => criterion.title) : [""];
+type CriterionDraft = { title: string; weight: string };
+
+function criteriaDrafts(rubric: RubricCriterion[] | undefined): CriterionDraft[] {
+  if (!rubric || rubric.length === 0) return [{ title: "", weight: "" }];
+  return rubric.map((criterion) => ({
+    title: criterion.title,
+    weight: criterion.weight == null ? "" : String(criterion.weight),
+  }));
+}
+
+function parseWeight(value: string): number | null | undefined {
+  const trimmed = value.trim();
+  if (trimmed === "") return null;
+  const parsed = Number(trimmed);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 100) return undefined;
+  return parsed;
 }
 
 export default function AssignmentView({ id }: { id: string }) {
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [criteria, setCriteria] = useState<string[]>([""]);
+  const [criteria, setCriteria] = useState<CriterionDraft[]>([{ title: "", weight: "" }]);
   const [replace, setReplace] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -30,7 +48,7 @@ export default function AssignmentView({ id }: { id: string }) {
   function applyLoaded([loadedAssignment, loadedMilestones]: [Assignment, Milestone[]]) {
     setAssignment(loadedAssignment);
     setMilestones(loadedMilestones);
-    setCriteria(criteriaTitles(loadedAssignment.rubric));
+    setCriteria(criteriaDrafts(loadedAssignment.rubric));
   }
 
   useEffect(() => {
@@ -50,10 +68,17 @@ export default function AssignmentView({ id }: { id: string }) {
 
   async function generate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const cleaned = criteria
-      .map((title) => title.trim())
-      .filter(Boolean)
-      .map((title) => ({ title }));
+    const cleaned: { title: string; weight: number | null }[] = [];
+    for (const draft of criteria) {
+      const title = draft.title.trim();
+      if (!title) continue;
+      const weight = parseWeight(draft.weight);
+      if (weight === undefined) {
+        setError(`"${title}" needs a weight from 0 to 100, or left blank.`);
+        return;
+      }
+      cleaned.push({ title, weight });
+    }
     setBusy(true);
     setError(null);
     try {
@@ -70,8 +95,24 @@ export default function AssignmentView({ id }: { id: string }) {
     }
   }
 
-  function updateCriterion(index: number, value: string) {
-    setCriteria(criteria.map((title, i) => (i === index ? value : title)));
+  function updateCriterion(index: number, field: keyof CriterionDraft, value: string) {
+    setCriteria(criteria.map((draft, i) => (i === index ? { ...draft, [field]: value } : draft)));
+  }
+
+  async function reorder(fromIndex: number, toIndex: number) {
+    if (toIndex < 0 || toIndex >= milestones.length) return;
+    const next = [...milestones];
+    [next[fromIndex], next[toIndex]] = [next[toIndex], next[fromIndex]];
+    setError(null);
+    try {
+      const reordered = await apiRequest<Milestone[]>(`/assignments/${id}/milestones/order`, {
+        method: "PUT",
+        body: { milestone_ids: next.map((m) => m.id) },
+      });
+      setMilestones(reordered);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
   }
 
   return (
@@ -87,17 +128,57 @@ export default function AssignmentView({ id }: { id: string }) {
       </section>
 
       <section className="card">
+        <h2>Your route to submission</h2>
+        <MilestoneRail milestones={milestones} deadline={assignment?.deadline ?? null} />
+      </section>
+
+      <section className="card">
+        <h2>This assignment's workload</h2>
+        <WorkloadHeatmap assignmentId={Number(id)} />
+      </section>
+
+      <section className="card">
+        <div className="card-title">
+          <h2>Plan review</h2>
+          <span className="muted">Advisory only — nothing here is applied unless you click Apply</span>
+        </div>
+        <PlanReview
+          assignmentId={id}
+          milestones={milestones}
+          onMilestoneUpdated={(updated) =>
+            setMilestones((current) => current.map((m) => (m.id === updated.id ? updated : m)))
+          }
+        />
+      </section>
+
+      <section className="card">
         <h2>Rubric criteria</h2>
         <p className="muted">
-          Each criterion becomes one milestone, spread evenly between now and the deadline. Edit, add or remove criteria
-          before generating.
+          Each criterion becomes one milestone. Set a weight — the share of the rubric it covers — and milestones
+          get proportional time instead of an even split; leave weight blank for an even split. Edit, add or remove
+          criteria before generating.
         </p>
         <form className="form" onSubmit={generate}>
-          {criteria.map((title, index) => (
+          {criteria.map((draft, index) => (
             <div className="form-row" key={index}>
               <label className="field">
                 Criterion {index + 1}
-                <input value={title} onChange={(event) => updateCriterion(index, event.target.value)} maxLength={255} />
+                <input
+                  value={draft.title}
+                  onChange={(event) => updateCriterion(index, "title", event.target.value)}
+                  maxLength={255}
+                />
+              </label>
+              <label className="field field-weight">
+                Weight %
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={draft.weight}
+                  onChange={(event) => updateCriterion(index, "weight", event.target.value)}
+                  placeholder="even"
+                />
               </label>
               {criteria.length > 1 && (
                 <button
@@ -114,7 +195,7 @@ export default function AssignmentView({ id }: { id: string }) {
             <button
               type="button"
               className="button secondary"
-              onClick={() => setCriteria([...criteria, ""])}
+              onClick={() => setCriteria([...criteria, { title: "", weight: "" }])}
             >
               Add criterion
             </button>
@@ -137,33 +218,61 @@ export default function AssignmentView({ id }: { id: string }) {
       </section>
 
       <section className="card">
-        <h2>Milestones</h2>
-        {milestones.length === 0 && <p className="muted">No milestones yet.</p>}
-        <ul className="list">
-          {milestones.map((milestone) => (
+        <div className="card-title">
+          <h2>Edit your plan</h2>
+          <span className="pill">{milestones.length} milestones</span>
+        </div>
+        <p className="muted">
+          This list is your own reading order — reordering it never changes a milestone's target date. The timeline
+          above always reads by date.
+        </p>
+        {milestones.length === 0 && <p className="muted">No milestones yet. Generate from the rubric, or add one below.</p>}
+        <ul className="list milestone-list">
+          {milestones.map((milestone, index) => (
             <MilestoneRow
               key={milestone.id}
               milestone={milestone}
+              isFirst={index === 0}
+              isLast={index === milestones.length - 1}
+              deadline={assignment?.deadline ?? null}
+              onMoveUp={() => reorder(index, index - 1)}
+              onMoveDown={() => reorder(index, index + 1)}
               onSaved={(saved) => setMilestones((current) => current.map((m) => (m.id === saved.id ? saved : m)))}
-              onDeleted={(removedId) => setMilestones((current) => current.filter((m) => m.id !== removedId))}
+              onDeleted={(removedId) =>
+                setMilestones((current) => current.filter((m) => m.id !== removedId))
+              }
               onError={setError}
             />
           ))}
         </ul>
+        <AddMilestoneForm
+          assignmentId={id}
+          deadline={assignment?.deadline ?? null}
+          onAdded={(created) => setMilestones((current) => [...current, created])}
+          onError={setError}
+        />
       </section>
     </>
   );
 }
 
-const STATUS_LABEL = (status: Status) => status.replace("_", " ");
-
 function MilestoneRow({
   milestone,
+  isFirst,
+  isLast,
+  deadline,
+  onMoveUp,
+  onMoveDown,
   onSaved,
   onDeleted,
   onError,
 }: {
   milestone: Milestone;
+  isFirst: boolean;
+  isLast: boolean;
+  deadline: string | null;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
   onSaved: (milestone: Milestone) => void;
   onDeleted: (id: number) => void;
   onError: (message: string) => void;
@@ -171,15 +280,21 @@ function MilestoneRow({
   const [title, setTitle] = useState(milestone.title);
   const [target, setTarget] = useState(toLocalInput(milestone.target_date));
   const [status, setStatus] = useState<Status>(milestone.status);
+  const [weight, setWeight] = useState(milestone.weight == null ? "" : String(milestone.weight));
   const [busy, setBusy] = useState(false);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const parsedWeight = parseWeight(weight);
+    if (parsedWeight === undefined) {
+      onError(`"${title}" needs a weight from 0 to 100, or left blank.`);
+      return;
+    }
     setBusy(true);
     try {
       const saved = await apiRequest<Milestone>(`/milestones/${milestone.id}`, {
         method: "PATCH",
-        body: { title, target_date: fromLocalInput(target), status },
+        body: { title, target_date: fromLocalInput(target), status, weight: parsedWeight },
       });
       onSaved(saved);
     } catch (err) {
@@ -201,15 +316,52 @@ function MilestoneRow({
   }
 
   return (
-    <li>
-      <form className="form-row" onSubmit={save} style={{ width: "100%" }}>
+    <li className="milestone-row">
+      <div className="reorder-controls">
+        <button
+          type="button"
+          className="reorder-button"
+          disabled={isFirst || busy}
+          onClick={onMoveUp}
+          aria-label={`Move "${milestone.title}" earlier in the list`}
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          className="reorder-button"
+          disabled={isLast || busy}
+          onClick={onMoveDown}
+          aria-label={`Move "${milestone.title}" later in the list`}
+        >
+          ↓
+        </button>
+      </div>
+      <form className="form-row milestone-form" onSubmit={save}>
         <label className="field">
           Milestone
           <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={255} required />
         </label>
         <label className="field">
-          Target
-          <input type="datetime-local" value={target} onChange={(event) => setTarget(event.target.value)} required />
+          Target date
+          <input
+            type="datetime-local"
+            value={target}
+            max={deadline ? toLocalInput(deadline) : undefined}
+            onChange={(event) => setTarget(event.target.value)}
+            required
+          />
+        </label>
+        <label className="field field-weight">
+          Weight %
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={weight}
+            onChange={(event) => setWeight(event.target.value)}
+            placeholder="—"
+          />
         </label>
         <label className="field">
           Status
@@ -229,5 +381,77 @@ function MilestoneRow({
         </button>
       </form>
     </li>
+  );
+}
+
+function AddMilestoneForm({
+  assignmentId,
+  deadline,
+  onAdded,
+  onError,
+}: {
+  assignmentId: string;
+  deadline: string | null;
+  onAdded: (milestone: Milestone) => void;
+  onError: (message: string) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [target, setTarget] = useState("");
+  const [weight, setWeight] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function add(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!title.trim() || !target) return;
+    const parsedWeight = parseWeight(weight);
+    if (parsedWeight === undefined) {
+      onError("Weight must be from 0 to 100, or left blank.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const created = await apiRequest<Milestone>(`/assignments/${assignmentId}/milestones`, {
+        method: "POST",
+        body: { title: title.trim(), target_date: fromLocalInput(target), weight: parsedWeight },
+      });
+      onAdded(created);
+      setTitle("");
+      setTarget("");
+      setWeight("");
+    } catch (err) {
+      onError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="form-row add-milestone-form" onSubmit={add}>
+      <label className="field">
+        New milestone
+        <input
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          maxLength={255}
+          placeholder="e.g. First draft"
+        />
+      </label>
+      <label className="field">
+        Target date
+        <input
+          type="datetime-local"
+          value={target}
+          max={deadline ? toLocalInput(deadline) : undefined}
+          onChange={(event) => setTarget(event.target.value)}
+        />
+      </label>
+      <label className="field field-weight">
+        Weight %
+        <input type="number" min={0} max={100} value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="—" />
+      </label>
+      <button className="button" type="submit" disabled={busy || !title.trim() || !target}>
+        {busy ? "Adding…" : "Add milestone"}
+      </button>
+    </form>
   );
 }
