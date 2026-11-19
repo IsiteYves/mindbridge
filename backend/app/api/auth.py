@@ -19,10 +19,8 @@ MAX_NAME_LENGTH = 120
 MAX_EMAIL_LENGTH = 255
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 TOKEN_LIFETIME = dt.timedelta(hours=1)
-
 MAX_LOGIN_ATTEMPTS = 5
 LOGIN_LOCKOUT = dt.timedelta(minutes=15)
-
 DEFAULT_REMINDER_OFFSETS = (5, 2, 1, 0)
 
 
@@ -168,6 +166,7 @@ def login():
     user = _find_user(email)
     now = dt.datetime.now(dt.timezone.utc)
 
+    # A locked account gets the same message as a wrong password
     locked = user is not None and user.locked_until is not None and user.locked_until > now
     if locked or user is None or not isinstance(password, str) or not check_password_hash(user.password_hash, password):
         if user is not None and not locked:
@@ -213,9 +212,7 @@ def reset_password():
         return jsonify(error="The code is invalid or has expired. Request a new one."), 400
 
     user.password_hash = generate_password_hash(data["password"])
-    # Resetting the password proves the email belongs to the user.
     user.email_verified = True
-
     user.failed_login_attempts = 0
     user.locked_until = None
     db.session.commit()
@@ -231,6 +228,5 @@ def logout():
 @auth_bp.get("/me")
 @token_required
 def me():
-
     user = g.current_user
     return jsonify(id=user.id, name=user.name, email=user.email)

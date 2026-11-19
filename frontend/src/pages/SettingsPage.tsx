@@ -13,7 +13,6 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "integrations", label: "Integrations" },
 ];
 
-
 export default function SettingsPage() {
   const [active, setActive] = useState<TabId>("profile");
   const user = useCurrentUser();

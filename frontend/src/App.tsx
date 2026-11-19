@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router";
 
+import AppTopbar from "@/components/AppTopbar";
 import NavBar from "@/components/NavBar";
 import PublicHeader from "@/components/PublicHeader";
 import SiteFooter from "@/components/SiteFooter";
@@ -12,9 +13,11 @@ import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ImportPage from "@/pages/ImportPage";
 import LoginPage from "@/pages/LoginPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+import PlanningGuidePage from "@/pages/PlanningGuidePage";
 import PlanPage from "@/pages/PlanPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import SettingsPage from "@/pages/SettingsPage";
 import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import { useSignedIn } from "@/lib/useSignedIn";
 
@@ -38,6 +41,8 @@ export default function App() {
       <Route path="/import" element={guard(<ImportPage />)} />
       <Route path="/assignments" element={guard(<AssignmentsPage />)} />
       <Route path="/assignments/:id" element={guard(<AssignmentDetailPage />)} />
+      <Route path="/settings" element={guard(<SettingsPage />)} />
+      <Route path="/planning-guide" element={guard(<PlanningGuidePage />)} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
@@ -57,9 +62,12 @@ export default function App() {
   return (
     <>
       <NavBar />
-      <main className="admin-main">
-        <div className="page">{routes}</div>
-      </main>
+      <div className="app-shell">
+        <AppTopbar />
+        <main className="admin-main">
+          <div className="page">{routes}</div>
+        </main>
+      </div>
     </>
   );
 }

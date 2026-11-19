@@ -216,7 +216,7 @@ def test_an_account_locks_after_the_attempt_limit(app, client):
     for _ in range(MAX_LOGIN_ATTEMPTS):
         login(client, password="wrong-one")
 
-    
+    # One more attempt, this time with the CORRECT password, should still be refused.
     response = login(client)
     assert response.status_code == 401
     assert response.get_json() == {"error": "Invalid email or password"}
@@ -229,7 +229,7 @@ def test_a_locked_account_gets_the_identical_message_as_a_wrong_password(app, cl
     for _ in range(MAX_LOGIN_ATTEMPTS):
         login(client, password="wrong-one")
 
-    locked = login(client)  
+    locked = login(client)  # correct password, but now locked
     wrong = login(client, password="wrong-one")
     assert locked.get_json() == wrong.get_json()
     assert locked.status_code == wrong.status_code == 401
@@ -250,8 +250,10 @@ def test_a_successful_login_resets_the_failed_attempt_count(app, client):
     verified_user(app, client)
     login(client, password="wrong-one")
     login(client, password="wrong-one")
-    assert login(client).status_code == 200  
+    assert login(client).status_code == 200  # correct password resets the count
 
+    # Now the count is back to zero, so a fresh run of wrong guesses needs
+    # the full limit again before locking.
     from app.api.auth import MAX_LOGIN_ATTEMPTS
 
     for _ in range(MAX_LOGIN_ATTEMPTS - 1):
@@ -265,7 +267,7 @@ def test_resetting_the_password_clears_an_existing_lockout(app, client):
     verified_user(app, client)
     for _ in range(MAX_LOGIN_ATTEMPTS):
         login(client, password="wrong-one")
-    assert login(client).status_code == 401  
+    assert login(client).status_code == 401  # confirmed locked
 
     client.post("/api/v1/auth/forgot-password", json={"email": EMAIL})
     code = sent_code(app, purpose="reset")
@@ -280,7 +282,7 @@ def test_resetting_the_password_clears_an_existing_lockout(app, client):
 
 
 def test_lockout_does_not_apply_to_an_unknown_email(app, client):
-
+    # An unknown email can never lock anything
     for _ in range(10):
         response = login(client, email="nobody@example.com")
         assert response.status_code == 401

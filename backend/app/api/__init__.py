@@ -1,4 +1,5 @@
 from flask import Blueprint
+
 from app.api.agent import agent_bp
 from app.api.assignments import assignments_bp
 from app.api.auth import auth_bp

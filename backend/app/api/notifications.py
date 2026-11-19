@@ -1,3 +1,8 @@
+"""Reminder preferences, and the inbox of reminders actually delivered.
+
+Nothing writes a Reminder row yet. That is the worker's job
+"""
+
 import datetime as dt
 
 from flask import Blueprint, abort, g, jsonify
@@ -9,7 +14,8 @@ from app.models import Reminder, ReminderPreference
 
 notifications_bp = Blueprint("notifications", __name__, url_prefix="/notifications")
 
-
+# The only offsets a student can toggle. Overdue and new-item reminders are not
+# covered here and are not optional — see ReminderPreference's docstring.
 ALLOWED_OFFSETS = (5, 2, 1, 0)
 
 
@@ -36,7 +42,10 @@ def list_preferences():
         preference.offset_days: preference
         for preference in db.session.query(ReminderPreference).filter_by(user_id=g.current_user.id)
     }
-
+    # One row per allowed offset, every time. An account created before this
+    # feature shipped has no ReminderPreference rows at all; defaulting a
+    # missing offset to enabled=True means it still sees a complete, correct
+    # list rather than a gap the UI would have to explain.
     return jsonify(
         [
             preference_json(existing[offset]) if offset in existing else {"offset_days": offset, "enabled": True}
@@ -74,7 +83,8 @@ def update_preference():
 @notifications_bp.get("")
 @token_required
 def list_notifications():
-
+    # Delivered and not yet dismissed: an inbox of what the student has
+    # actually been told, not a preview of what will fire later.
     reminders = (
         db.session.query(Reminder)
         .filter(
@@ -100,7 +110,8 @@ def owned_reminder_or_404(reminder_id):
 def dismiss(reminder_id):
     reminder = owned_reminder_or_404(reminder_id)
     if reminder.sent_at is None:
-
+        # Nothing reachable through list_notifications() has a null sent_at, so
+        # this only guards a guessed or stale id, not a real user flow.
         abort(409, description="This reminder has not been delivered yet.")
     reminder.dismissed_at = dt.datetime.now(dt.timezone.utc)
     db.session.commit()

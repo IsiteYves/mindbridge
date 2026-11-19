@@ -1,4 +1,3 @@
-
 import datetime as dt
 
 from app.extensions import db
@@ -7,7 +6,7 @@ from app.models import Assignment, Reminder, ReminderPreference, User
 NOTIFICATIONS = "/api/v1/notifications"
 
 
-# ── Preferences ─────────────────────────────────────────────────────────────
+# Preferences
 
 
 def test_a_new_account_has_all_four_offsets_enabled_by_default(client, make_user_headers):
@@ -71,8 +70,7 @@ def test_enabled_must_be_a_boolean(client, make_user_headers):
     assert response.status_code == 400
 
 
-# ── Inbox ────────────────────────────────────────────────────────────────────
-
+# Inbox
 
 def _make_assignment(user):
     assignment = Assignment(user=user, course="CS", title="Report", deadline=dt.datetime(2026, 11, 20, tzinfo=dt.timezone.utc))
