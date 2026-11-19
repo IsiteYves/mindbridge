@@ -1,6 +1,9 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 
+import DailyGoalCard from "@/components/DailyGoalCard";
+import FocusTimerCard from "@/components/FocusTimerCard";
+import WorkloadHeatmap from "@/components/WorkloadHeatmap";
 import { Assignment, Status, apiRequest, errorMessage } from "@/lib/api";
 import { formatDate, fromLocalInput } from "@/lib/dates";
 
@@ -82,6 +85,11 @@ export default function AssignmentsPage() {
 
       {error && <p className="error">{error}</p>}
 
+      <section className="dashboard-row" aria-label="Today">
+        <DailyGoalCard />
+        <FocusTimerCard />
+      </section>
+
       <section className="stats-grid" aria-label="Summary">
         <article className="stat">
           <p className="stat-label">Total</p>
@@ -103,6 +111,14 @@ export default function AssignmentsPage() {
           <p className="stat-value">{count("done")}</p>
           <p className="stat-detail">Submitted or finished</p>
         </article>
+      </section>
+
+      <section className="card">
+        <div className="card-title">
+          <h2>Workload</h2>
+          <span className="muted">How your work is spread across the month</span>
+        </div>
+        <WorkloadHeatmap />
       </section>
 
       <section className="card">
