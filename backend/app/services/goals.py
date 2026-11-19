@@ -1,4 +1,5 @@
-"""Pure helpers for the daily-goal checklist."""
+"""Pure helpers for the daily-goal checklist.
+"""
 
 from __future__ import annotations
 
