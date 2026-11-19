@@ -7,7 +7,7 @@ from flask import g
 
 from app.api.auth import token_required
 from app.extensions import db
-from app.models import User
+from app.models import ReminderPreference, User
 
 PASSWORD = "Sturdy-pass1"
 EMAIL = "student1@example.com"
@@ -58,6 +58,15 @@ def test_register_sends_a_code_and_stores_a_hash(app, client):
     assert user.email_verified is False
     assert user.password_hash != PASSWORD
     assert len(sent_code(app)) == 6
+
+
+def test_register_seeds_default_reminder_preferences(app, client):
+    register(client)
+
+    user = db.session.query(User).filter_by(email=EMAIL).one()
+    preferences = db.session.query(ReminderPreference).filter_by(user_id=user.id).all()
+    assert {p.offset_days for p in preferences} == {5, 2, 1, 0}
+    assert all(p.enabled for p in preferences)
 
 
 def test_email_is_normalized_to_lowercase(client):
@@ -198,6 +207,84 @@ def test_login_returns_token_with_user_subject(app, client):
     assert response.status_code == 200
     payload = jwt.decode(response.get_json()["token"], app.config["SECRET_KEY"], algorithms=["HS256"])
     assert payload["sub"] == str(db.session.query(User).one().id)
+
+
+def test_an_account_locks_after_the_attempt_limit(app, client):
+    from app.api.auth import MAX_LOGIN_ATTEMPTS
+
+    verified_user(app, client)
+    for _ in range(MAX_LOGIN_ATTEMPTS):
+        login(client, password="wrong-one")
+
+    
+    response = login(client)
+    assert response.status_code == 401
+    assert response.get_json() == {"error": "Invalid email or password"}
+
+
+def test_a_locked_account_gets_the_identical_message_as_a_wrong_password(app, client):
+    from app.api.auth import MAX_LOGIN_ATTEMPTS
+
+    verified_user(app, client)
+    for _ in range(MAX_LOGIN_ATTEMPTS):
+        login(client, password="wrong-one")
+
+    locked = login(client)  
+    wrong = login(client, password="wrong-one")
+    assert locked.get_json() == wrong.get_json()
+    assert locked.status_code == wrong.status_code == 401
+
+
+def test_fewer_than_the_limit_does_not_lock_the_account(app, client):
+    from app.api.auth import MAX_LOGIN_ATTEMPTS
+
+    verified_user(app, client)
+    for _ in range(MAX_LOGIN_ATTEMPTS - 1):
+        login(client, password="wrong-one")
+
+    response = login(client)
+    assert response.status_code == 200
+
+
+def test_a_successful_login_resets_the_failed_attempt_count(app, client):
+    verified_user(app, client)
+    login(client, password="wrong-one")
+    login(client, password="wrong-one")
+    assert login(client).status_code == 200  
+
+    from app.api.auth import MAX_LOGIN_ATTEMPTS
+
+    for _ in range(MAX_LOGIN_ATTEMPTS - 1):
+        login(client, password="wrong-one")
+    assert login(client).status_code == 200
+
+
+def test_resetting_the_password_clears_an_existing_lockout(app, client):
+    from app.api.auth import MAX_LOGIN_ATTEMPTS
+
+    verified_user(app, client)
+    for _ in range(MAX_LOGIN_ATTEMPTS):
+        login(client, password="wrong-one")
+    assert login(client).status_code == 401  
+
+    client.post("/api/v1/auth/forgot-password", json={"email": EMAIL})
+    code = sent_code(app, purpose="reset")
+    new_password = "Different-pass2"
+    client.post(
+        "/api/v1/auth/reset-password",
+        json={"email": EMAIL, "code": code, "password": new_password, "confirm_password": new_password},
+    )
+
+    response = login(client, password=new_password)
+    assert response.status_code == 200
+
+
+def test_lockout_does_not_apply_to_an_unknown_email(app, client):
+
+    for _ in range(10):
+        response = login(client, email="nobody@example.com")
+        assert response.status_code == 401
+        assert response.get_json() == {"error": "Invalid email or password"}
 
 
 def test_forgot_password_answers_the_same_for_unknown_emails(app, client):
