@@ -89,6 +89,6 @@ def test_generated_criteria_are_saved_on_the_assignment(client, make_user_header
     assignment = client.get(f"{ASSIGNMENTS}/{assignment_id}", headers=headers).get_json()
 
     assert assignment["rubric"] == [
-        {"title": "Problem statement", "description": None},
-        {"title": "Method", "description": "Describe the design"},
+        {"title": "Problem statement", "description": None, "weight": None},
+        {"title": "Method", "description": "Describe the design", "weight": None},
     ]

@@ -15,11 +15,38 @@ from app.api.common import (
 )
 from app.extensions import db
 from app.models import Milestone
-from app.services.scheduling import milestone_targets
+from app.services.scheduling import weighted_targets
 
 milestones_bp = Blueprint("milestones", __name__)
 
 MAX_RUBRIC_CRITERIA = 30
+MAX_MILESTONES = 30
+
+
+def _weight(value):
+    """Return (is_valid, weight). Null is valid and means "not weighted yet"."""
+    if value is None:
+        return True, None
+    if isinstance(value, bool) or not isinstance(value, int):
+        return False, None
+    if not 0 <= value <= 100:
+        return False, None
+    return True, value
+
+
+def _next_position(assignment):
+    return max((m.position for m in assignment.milestones), default=-1) + 1
+
+
+def _ordered(assignment):
+    """Student order first, then target date, then id so the result is stable."""
+    return sorted(assignment.milestones, key=lambda m: (m.position, m.target_date, m.id))
+
+
+def _renumber(assignment):
+    """Close gaps left by a delete so positions stay 0..n-1."""
+    for index, milestone in enumerate(_ordered(assignment)):
+        milestone.position = index
 
 
 def milestone_json(milestone):
@@ -30,6 +57,8 @@ def milestone_json(milestone):
         "description": milestone.description,
         "target_date": iso_utc(milestone.target_date),
         "status": milestone.status,
+        "position": milestone.position,
+        "weight": milestone.weight,
     }
 
 
@@ -57,14 +86,15 @@ def _past_deadline(assignment, target_date):
 @token_required
 def list_milestones(assignment_id):
     assignment = owned_assignment_or_404(assignment_id)
-    milestones = sorted(assignment.milestones, key=lambda m: (m.target_date, m.id))
-    return jsonify([milestone_json(m) for m in milestones])
+    return jsonify([milestone_json(m) for m in _ordered(assignment)])
 
 
 @milestones_bp.post("/assignments/<int:assignment_id>/milestones")
 @token_required
 def create_milestone(assignment_id):
     assignment = owned_assignment_or_404(assignment_id)
+    if len(assignment.milestones) >= MAX_MILESTONES:
+        return jsonify(error=f"An assignment can hold at most {MAX_MILESTONES} milestones"), 409
     data = json_body()
 
     title = clean_text(data.get("title"), MAX_TITLE_LENGTH)
@@ -85,12 +115,18 @@ def create_milestone(assignment_id):
     if status not in STATUSES:
         return jsonify(error=f"status must be one of {', '.join(STATUSES)}"), 400
 
+    is_valid, weight = _weight(data.get("weight"))
+    if not is_valid:
+        return jsonify(error="weight must be a whole number from 0 to 100, or null"), 400
+
     milestone = Milestone(
         assignment_id=assignment.id,
         title=title,
         description=description,
         target_date=target_date,
         status=status,
+        weight=weight,
+        position=_next_position(assignment),
     )
     db.session.add(milestone)
     db.session.commit()
@@ -114,7 +150,10 @@ def create_milestones_from_rubric(assignment_id):
         is_valid, description = _description(criterion.get("description"))
         if title is None or not is_valid:
             return jsonify(error="each criterion needs a title and a valid description"), 400
-        cleaned.append((title, description))
+        is_valid, weight = _weight(criterion.get("weight"))
+        if not is_valid:
+            return jsonify(error="each criterion weight must be a whole number from 0 to 100, or null"), 400
+        cleaned.append((title, description, weight))
 
     replace = data.get("replace", False)
     if not isinstance(replace, bool):
@@ -131,11 +170,21 @@ def create_milestones_from_rubric(assignment_id):
     for existing in list(assignment.milestones):
         db.session.delete(existing)
     # Keep the criteria the student generated from, so the rubric review shows them on a later visit.
-    assignment.rubric = [{"title": title, "description": description} for title, description in cleaned]
-    targets = milestone_targets(len(cleaned), now, assignment.deadline)
+    assignment.rubric = [
+        {"title": title, "description": description, "weight": weight} for title, description, weight in cleaned
+    ]
+    # Weighted spacing gives a heavier criterion more working time
+    targets = weighted_targets([weight for _, _, weight in cleaned], now, assignment.deadline)
     created = [
-        Milestone(assignment_id=assignment.id, title=title, description=description, target_date=target)
-        for (title, description), target in zip(cleaned, targets)
+        Milestone(
+            assignment_id=assignment.id,
+            title=title,
+            description=description,
+            target_date=target,
+            weight=weight,
+            position=index,
+        )
+        for index, ((title, description, weight), target) in enumerate(zip(cleaned, targets))
     ]
     db.session.add_all(created)
     db.session.commit()
@@ -179,6 +228,12 @@ def update_milestone(milestone_id):
             return jsonify(error=f"status must be one of {', '.join(STATUSES)}"), 400
         milestone.status = data["status"]
 
+    if "weight" in data:
+        is_valid, weight = _weight(data["weight"])
+        if not is_valid:
+            return jsonify(error="weight must be a whole number from 0 to 100, or null"), 400
+        milestone.weight = weight
+
     db.session.commit()
     return jsonify(milestone_json(milestone))
 
@@ -186,6 +241,41 @@ def update_milestone(milestone_id):
 @milestones_bp.delete("/milestones/<int:milestone_id>")
 @token_required
 def delete_milestone(milestone_id):
-    db.session.delete(owned_milestone_or_404(milestone_id))
+    milestone = owned_milestone_or_404(milestone_id)
+    assignment = milestone.assignment
+    db.session.delete(milestone)
+    db.session.flush()
+    _renumber(assignment)
     db.session.commit()
     return "", 204
+
+
+@milestones_bp.put("/assignments/<int:assignment_id>/milestones/order")
+@token_required
+def reorder_milestones(assignment_id):
+    """Set the reading order of a plan in one call.
+
+    The body carries every milestone id for this assignment exactly once, in the
+    order the student wants. Taking the whole list rather than a from/to pair
+    keeps the operation idempotent and means a dropped request can simply be
+    resent. Target dates are untouched: reordering changes how the plan reads,
+    never when the work is due.
+    """
+    assignment = owned_assignment_or_404(assignment_id)
+    data = json_body()
+
+    ids = data.get("milestone_ids")
+    if not isinstance(ids, list) or any(isinstance(i, bool) or not isinstance(i, int) for i in ids):
+        return jsonify(error="milestone_ids must be a list of milestone ids"), 400
+
+    existing = {m.id for m in assignment.milestones}
+    if len(set(ids)) != len(ids):
+        return jsonify(error="milestone_ids cannot repeat an id"), 400
+    if set(ids) != existing:
+        return jsonify(error="milestone_ids must list every milestone of this assignment exactly once"), 400
+
+    by_id = {m.id: m for m in assignment.milestones}
+    for index, milestone_id in enumerate(ids):
+        by_id[milestone_id].position = index
+    db.session.commit()
+    return jsonify([milestone_json(m) for m in _ordered(assignment)])
