@@ -19,17 +19,8 @@ MAX_NAME_LENGTH = 120
 MAX_EMAIL_LENGTH = 255
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 TOKEN_LIFETIME = dt.timedelta(hours=1)
-# Login brute-force protection. Five wrong passwords in a row locks the
-# account for 15 minutes — long enough to make guessing impractical, short
-# enough that a genuine owner who mistyped their password a few times is
-# never locked out for good. Matches the attempt limit already used for
-# verification codes (app/services/codes.py's MAX_ATTEMPTS).
 MAX_LOGIN_ATTEMPTS = 5
 LOGIN_LOCKOUT = dt.timedelta(minutes=15)
-# Every new account starts with reminders on for all four day-before offsets.
-# A student can turn any of these off afterwards in Settings; see
-# app/api/notifications.py. Overdue and new-item reminders are not seeded
-# here because they are not optional.
 DEFAULT_REMINDER_OFFSETS = (5, 2, 1, 0)
 
 
@@ -175,10 +166,7 @@ def login():
     user = _find_user(email)
     now = dt.datetime.now(dt.timezone.utc)
 
-    # A locked account gets the same message as a wrong password: revealing
-    # "this account is locked" would itself leak that the account exists and
-    # is currently under attack, on top of letting an attacker learn when a
-    # lockout clears by polling.
+    # A locked account gets the same message as a wrong password
     locked = user is not None and user.locked_until is not None and user.locked_until > now
     if locked or user is None or not isinstance(password, str) or not check_password_hash(user.password_hash, password):
         if user is not None and not locked:
@@ -224,11 +212,7 @@ def reset_password():
         return jsonify(error="The code is invalid or has expired. Request a new one."), 400
 
     user.password_hash = generate_password_hash(data["password"])
-    # Resetting the password also proves the email belongs to the user.
     user.email_verified = True
-    # A verified reset is stronger proof of ownership than a login attempt
-    # ever is, so any lockout from earlier guesses against the old password
-    # is cleared rather than making the owner also wait it out.
     user.failed_login_attempts = 0
     user.locked_until = None
     db.session.commit()
@@ -244,8 +228,5 @@ def logout():
 @auth_bp.get("/me")
 @token_required
 def me():
-    # The app shell needs the student's name and initials (for the sidebar and the
-    # avatar) without asking the client to decode its own JWT. The token carries
-    # only a user id on purpose, so this is the one place that turns it into a name.
     user = g.current_user
     return jsonify(id=user.id, name=user.name, email=user.email)
