@@ -150,3 +150,142 @@ def test_imported_rubric_is_saved_on_the_assignment(canvas_app, client, make_use
     listed = client.get(ASSIGNMENTS, headers=headers).get_json()
     project = next(a for a in listed if a["canvas_id"] == "5001")
     assert project["rubric"] == [{"title": "Analysis", "points": 10}]
+
+
+# ── Persistent connection: /canvas/status, /connect, /sync, /connection ────
+
+
+@pytest.fixture
+def encryption_key(monkeypatch):
+    from cryptography.fernet import Fernet
+
+    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", Fernet.generate_key().decode())
+
+
+def test_status_before_ever_connecting(canvas_app, client, make_user_headers):
+    headers = make_user_headers("student1")
+    response = client.get(f"{CANVAS}/status", headers=headers)
+    assert response.status_code == 200
+    assert response.get_json() == {"provider": "canvas", "status": "not_connected", "last_synced_at": None}
+
+
+def test_connect_requires_the_encryption_key_to_be_configured(canvas_app, client, make_user_headers, monkeypatch):
+    monkeypatch.delenv("TOKEN_ENCRYPTION_KEY", raising=False)
+    headers = make_user_headers("student1")
+
+    response = client.post(f"{CANVAS}/connect", json=import_payload(), headers=headers)
+    assert response.status_code == 503
+
+
+def test_connect_imports_and_marks_the_connection_active(canvas_app, client, make_user_headers, encryption_key):
+    headers = make_user_headers("student1")
+
+    response = client.post(f"{CANVAS}/connect", json=import_payload(), headers=headers)
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["created"] == 1
+    assert body["connection"]["status"] == "connected"
+    assert body["connection"]["last_synced_at"] is not None
+
+    status = client.get(f"{CANVAS}/status", headers=headers).get_json()
+    assert status["status"] == "connected"
+
+
+def test_connect_never_exposes_the_raw_token_anywhere_in_the_response(canvas_app, client, make_user_headers, encryption_key):
+    headers = make_user_headers("student1")
+    response = client.post(f"{CANVAS}/connect", json=import_payload(), headers=headers)
+    assert TOKEN not in response.get_data(as_text=True)
+
+
+def test_sync_reimports_using_the_stored_token_with_no_token_in_the_request(canvas_app, client, make_user_headers, encryption_key):
+    headers = make_user_headers("student1")
+    client.post(f"{CANVAS}/connect", json=import_payload(), headers=headers)
+    FakeCanvas.assignments["101"][0]["title"] = "Final project report"
+
+    response = client.post(f"{CANVAS}/sync", json={}, headers=headers)
+    assert response.status_code == 200
+    assert response.get_json()["updated"] == 1
+    assert response.get_json()["assignments"][0]["title"] == "Final project report"
+    FakeCanvas.assignments["101"][0]["title"] = "Project report"
+
+
+def test_sync_before_connecting_is_refused(canvas_app, client, make_user_headers):
+    headers = make_user_headers("student1")
+    response = client.post(f"{CANVAS}/sync", json={}, headers=headers)
+    assert response.status_code == 409
+
+
+def test_sync_after_disconnecting_is_refused(canvas_app, client, make_user_headers, encryption_key):
+    headers = make_user_headers("student1")
+    client.post(f"{CANVAS}/connect", json=import_payload(), headers=headers)
+    client.delete(f"{CANVAS}/connection", headers=headers)
+
+    response = client.post(f"{CANVAS}/sync", json={}, headers=headers)
+    assert response.status_code == 409
+
+
+def test_disconnect_clears_the_token_but_keeps_imported_assignments(canvas_app, client, make_user_headers, encryption_key):
+    headers = make_user_headers("student1")
+    client.post(f"{CANVAS}/connect", json=import_payload(), headers=headers)
+
+    response = client.delete(f"{CANVAS}/connection", headers=headers)
+    assert response.status_code == 200
+    assert response.get_json()["status"] == "disconnected"
+
+    assignments = client.get(ASSIGNMENTS, headers=headers).get_json()
+    assert len(assignments) == 1  # untouched by disconnecting
+
+
+def test_disconnecting_with_no_connection_yet_is_a_harmless_no_op(canvas_app, client, make_user_headers):
+    headers = make_user_headers("student1")
+    response = client.delete(f"{CANVAS}/connection", headers=headers)
+    assert response.status_code == 200
+    assert response.get_json()["status"] == "not_connected"
+
+
+def test_a_token_that_cannot_be_decrypted_forces_a_reconnect(canvas_app, client, make_user_headers, encryption_key, monkeypatch):
+    from cryptography.fernet import Fernet
+
+    headers = make_user_headers("student1")
+    client.post(f"{CANVAS}/connect", json=import_payload(), headers=headers)
+
+    # Simulate the encryption key having rotated since the token was stored:
+    # the ciphertext on disk is unchanged, but it can no longer be read back
+    # under the new key.
+    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", Fernet.generate_key().decode())
+
+    response = client.post(f"{CANVAS}/sync", json={}, headers=headers)
+    assert response.status_code == 409
+    assert "reconnect" in response.get_json()["error"].lower()
+
+    status = client.get(f"{CANVAS}/status", headers=headers).get_json()
+    assert status["status"] == "disconnected"
+
+
+def test_the_connection_is_private_to_its_owner(canvas_app, client, make_user_headers, encryption_key):
+    owner = make_user_headers("student1")
+    intruder = make_user_headers("student2")
+    client.post(f"{CANVAS}/connect", json=import_payload(), headers=owner)
+
+    status = client.get(f"{CANVAS}/status", headers=intruder).get_json()
+    assert status["status"] == "not_connected"
+
+
+def test_reconnecting_replaces_the_previously_selected_courses(canvas_app, client, make_user_headers, encryption_key):
+    headers = make_user_headers("student1")
+    FakeCanvas.courses.append({"id": "202", "name": "Databases"})
+    FakeCanvas.assignments["202"] = [
+        {"canvas_id": "6001", "course_id": "202", "title": "Schema design", "deadline": "2026-12-01T00:00:00Z", "rubric": []}
+    ]
+    try:
+        client.post(f"{CANVAS}/connect", json=import_payload(course_ids=["101"]), headers=headers)
+        response = client.post(f"{CANVAS}/connect", json=import_payload(course_ids=["202"]), headers=headers)
+        assert response.status_code == 200
+        sync_response = client.post(f"{CANVAS}/sync", json={}, headers=headers)
+        titles = {a["title"] for a in sync_response.get_json()["assignments"]}
+        assert "Schema design" in titles
+    finally:
+        FakeCanvas.courses.pop()
+        del FakeCanvas.assignments["202"]
+
+
