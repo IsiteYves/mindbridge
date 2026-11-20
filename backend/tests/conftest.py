@@ -17,6 +17,7 @@ def app():
         pytest.fail("TEST_DATABASE_URL must point at a database whose name contains 'test'")
 
     sent_codes = []
+    sent_reminders = []
     app = create_app(
         {
             "TESTING": True,
@@ -25,6 +26,10 @@ def app():
             # Replaces SMTP so tests can read the codes that would have been emailed.
             "MAILER": lambda to, purpose, code: sent_codes.append({"to": to, "purpose": purpose, "code": code}),
             "SENT_CODES": sent_codes,
+            "REMINDER_MAILER": lambda to, subject, body: sent_reminders.append(
+                {"to": to, "subject": subject, "body": body}
+            ),
+            "SENT_REMINDERS": sent_reminders,
         }
     )
     with app.app_context():

@@ -15,7 +15,6 @@ class User(TimestampMixin, db.Model):
     email = db.Column(String(255), unique=True, nullable=False)
     email_verified = db.Column(Boolean, nullable=False, default=False, server_default="false")
     password_hash = db.Column(String(255), nullable=False)
-    # Login brute-force protection.
     failed_login_attempts = db.Column(Integer, nullable=False, default=0, server_default="0")
     locked_until = db.Column(DateTime(timezone=True), nullable=True)
 
@@ -40,7 +39,6 @@ class Assignment(TimestampMixin, db.Model):
     title = db.Column(String(255), nullable=False)
     status = db.Column(String(20), nullable=False, default="not_started")
     deadline = db.Column(DateTime(timezone=True))
-    # Rubric criteria as a list of {"title", "description"?, "points"?} objects.
     rubric = db.Column(JSON, nullable=True)
 
     user = db.relationship("User", back_populates="assignments")
@@ -110,9 +108,7 @@ class Reminder(TimestampMixin, db.Model):
     assignment_id = db.Column(Integer, ForeignKey("assignments.id", ondelete="CASCADE"), nullable=False, index=True)
     # Null for a reminder about the assignment deadline itself rather than one milestone.
     milestone_id = db.Column(Integer, ForeignKey("milestones.id", ondelete="CASCADE"), nullable=True, index=True)
-    # "milestone" | "deadline" | "new_item" | "overdue"
     kind = db.Column(String(20), nullable=False)
-    # Days before the target: 5, 2, 1 or 0. Null for "new_item" and "overdue"
     offset_days = db.Column(Integer, nullable=True)
     fired_for_date = db.Column(Date, nullable=False)
     sent_at = db.Column(DateTime(timezone=True), nullable=True)
@@ -124,6 +120,7 @@ class Reminder(TimestampMixin, db.Model):
 
 
 class ReminderPreference(TimestampMixin, db.Model):
+
     __tablename__ = "reminder_preferences"
     __table_args__ = (UniqueConstraint("user_id", "offset_days", name="uq_reminder_pref_user_offset"),)
 
@@ -168,7 +165,6 @@ class LMSIntegration(TimestampMixin, db.Model):
     provider = db.Column(String(50), nullable=False)
     status = db.Column(String(20), nullable=False, default="connected")
     last_synced_at = db.Column(DateTime(timezone=True))
-    # Fernet ciphertext
     access_token_encrypted = db.Column(String(1024), nullable=True)
     selected_course_ids = db.Column(JSON, nullable=True)
 
@@ -176,8 +172,6 @@ class LMSIntegration(TimestampMixin, db.Model):
 
 
 class FocusSession(TimestampMixin, db.Model):
-    """One focus-timer run (Pomodoro-style). Optionally tied to the milestone the
-    student was working on"""
 
     __tablename__ = "focus_sessions"
 
