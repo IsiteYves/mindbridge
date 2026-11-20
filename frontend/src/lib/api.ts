@@ -43,6 +43,13 @@ export type ImportResult = {
 
 export type CanvasCourse = { id: string; name: string };
 
+export type CanvasConnectionStatus = {
+  provider: "canvas";
+  status: "not_connected" | "connected" | "disconnected";
+  last_synced_at: string | null;
+};
+
+export type CanvasSyncResult = ImportResult & { connection: CanvasConnectionStatus };
 export class ApiError extends Error {
   status: number;
 
