@@ -99,6 +99,103 @@ def get_schedule():
     )
 
 
+MAX_WORKLOAD_SPAN_DAYS = 180
+DEFAULT_WORKLOAD_SPAN_DAYS = 60
+# A day's own `count` is always the true total, even once its displayed
+# `items` list has been capped — so a cluster of work is never hidden by a
+# truncated list silently also becoming a wrong number.
+MAX_ITEMS_PER_DAY = 10
+
+
+def _date_arg(name, default):
+    raw = request.args.get(name)
+    if raw is None:
+        return True, default
+    try:
+        return True, dt.date.fromisoformat(raw)
+    except ValueError:
+        return False, None
+
+
+@schedule_bp.get("/schedule/workload")
+@token_required
+def get_workload():
+    """One entry per calendar day in [start, end] that has anything due
+    """
+    today = dt.datetime.now(dt.timezone.utc).date()
+    is_valid_start, start = _date_arg("start", today)
+    if not is_valid_start:
+        return jsonify(error="start must be an ISO 8601 date (YYYY-MM-DD)"), 400
+    is_valid_end, end = _date_arg("end", start + dt.timedelta(days=DEFAULT_WORKLOAD_SPAN_DAYS))
+    if not is_valid_end:
+        return jsonify(error="end must be an ISO 8601 date (YYYY-MM-DD)"), 400
+    if end < start:
+        return jsonify(error="end must not be before start"), 400
+    if (end - start).days > MAX_WORKLOAD_SPAN_DAYS:
+        return jsonify(error=f"the range cannot span more than {MAX_WORKLOAD_SPAN_DAYS} days"), 400
+
+    # Optional: scope the heatmap to one assignment, for that assignment's own
+    # page. Omitted, this is the whole-plan view used on the assignments list.
+    assignment_filter = request.args.get("assignment_id")
+    if assignment_filter is not None:
+        try:
+            assignment_filter = int(assignment_filter)
+        except ValueError:
+            return jsonify(error="assignment_id must be an integer"), 400
+
+    counts: dict[dt.date, int] = {}
+    items: dict[dt.date, list] = {}
+
+    def add(day, item):
+        if not (start <= day <= end):
+            return
+        counts[day] = counts.get(day, 0) + 1
+        bucket = items.setdefault(day, [])
+        if len(bucket) < MAX_ITEMS_PER_DAY:
+            bucket.append(item)
+
+    milestone_query = (
+        db.session.query(Milestone)
+        .join(Assignment)
+        .filter(Assignment.user_id == g.current_user.id, Milestone.status != "done")
+    )
+    if assignment_filter is not None:
+        milestone_query = milestone_query.filter(Assignment.id == assignment_filter)
+    for milestone in milestone_query.all():
+        add(
+            milestone.target_date.date(),
+            {
+                "kind": "milestone",
+                "id": milestone.id,
+                "assignment_id": milestone.assignment_id,
+                "title": milestone.title,
+                "course": milestone.assignment.course,
+            },
+        )
+
+    assignment_query = db.session.query(Assignment).filter(
+        Assignment.user_id == g.current_user.id, Assignment.status != "done", Assignment.deadline.isnot(None)
+    )
+    if assignment_filter is not None:
+        assignment_query = assignment_query.filter(Assignment.id == assignment_filter)
+    for assignment in assignment_query.all():
+        add(
+            assignment.deadline.date(),
+            {
+                "kind": "deadline",
+                "id": assignment.id,
+                "assignment_id": assignment.id,
+                "title": assignment.title,
+                "course": assignment.course,
+            },
+        )
+
+    days = [
+        {"date": day.isoformat(), "count": counts[day], "items": items.get(day, [])} for day in sorted(counts)
+    ]
+    return jsonify(start=start.isoformat(), end=end.isoformat(), days=days)
+
+
 @schedule_bp.get("/reminders")
 @token_required
 def get_reminders():
