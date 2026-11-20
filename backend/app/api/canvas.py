@@ -26,9 +26,6 @@ def handle_canvas_error(error):
 
 @canvas_bp.errorhandler(EncryptionNotConfigured)
 def handle_encryption_not_configured(_error):
-    # A deployment that has not set TOKEN_ENCRYPTION_KEY cannot safely store a
-    # Canvas token at rest. That is a server configuration gap, not something
-    # the student did wrong, so this is a 503, not a 400.
     return jsonify(error="Saving a Canvas connection is not configured on this server"), 503
 
 
@@ -78,9 +75,6 @@ def list_courses():
 @canvas_bp.post("/import")
 @token_required
 def import_assignments():
-    """One-shot import: the token is used for this call only and never
-    stored. See /connect for a persistent connection that remembers it.
-    """
     data = json_body()
     token = _token(data)
     course_ids = data.get("course_ids")
@@ -100,11 +94,6 @@ def connection_status():
 @canvas_bp.post("/connect")
 @token_required
 def connect():
-    """Store the token (encrypted) and the chosen courses, run the first
-    import, and mark the connection active — so later syncs need neither the
-    token pasted again nor the courses re-chosen. See app/services/crypto.py
-    for how the token itself is protected at rest.
-    """
     data = json_body()
     token = _token(data)
     course_ids = data.get("course_ids")
@@ -130,20 +119,12 @@ def connect():
 @canvas_bp.post("/sync")
 @token_required
 def sync():
-    """Re-run the import using the stored token and course selection. No
-    token or course_ids in the request body — if either is missing, the
-    student has not connected yet (or disconnected since), and the right
-    next step is /connect, not this.
-    """
     integration = _integration_for(g.current_user.id)
     if integration is None or integration.status != "connected" or not integration.access_token_encrypted:
         return jsonify(error="Canvas is not connected yet. Connect it first."), 409
 
     token = decrypt_secret(integration.access_token_encrypted)
     if token is None:
-        # The stored ciphertext cannot be read back — most likely the
-        # encryption key changed since it was saved. The old token is
-        # unrecoverable; reconnecting replaces it with a fresh one.
         integration.status = "disconnected"
         db.session.commit()
         return jsonify(error="Your Canvas connection could not be read back. Please reconnect."), 409
@@ -163,9 +144,6 @@ def sync():
 @canvas_bp.delete("/connection")
 @token_required
 def disconnect():
-    """Forget the stored token. Past imports are untouched — disconnecting
-    stops future syncs, it does not undo anything already brought in.
-    """
     integration = _integration_for(g.current_user.id)
     if integration is None:
         return jsonify(_integration_json(None))
