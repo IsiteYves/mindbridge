@@ -1,3 +1,10 @@
+"""Two periodic jobs, each a one-shot command meant to be triggered by
+whatever free scheduler the deployment already has available.
+
+    flask reminders send      one pass of app/services/reminders.py
+    flask canvas sync-all     one pass re-syncing every connected account
+"""
+
 import datetime as dt
 
 import click
@@ -17,12 +24,14 @@ canvas_cli = AppGroup("canvas", help="Keep connected Canvas accounts in sync.")
 
 @reminders_cli.command("send")
 def send():
+    """Send every reminder due today, then print a one-line summary."""
     result = send_due_reminders()
     click.echo(f"considered={result['considered']} sent={result['sent']}")
 
 
 @canvas_cli.command("sync-all")
 def sync_all():
+    """Re-sync every account with an active Canvas connection"""
     base_url = current_app.config.get("CANVAS_BASE_URL")
     if not base_url:
         click.echo("Canvas integration is not configured on this server; nothing to sync.")

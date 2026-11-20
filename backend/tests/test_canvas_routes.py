@@ -249,9 +249,6 @@ def test_a_token_that_cannot_be_decrypted_forces_a_reconnect(canvas_app, client,
     headers = make_user_headers("student1")
     client.post(f"{CANVAS}/connect", json=import_payload(), headers=headers)
 
-    # Simulate the encryption key having rotated since the token was stored:
-    # the ciphertext on disk is unchanged, but it can no longer be read back
-    # under the new key.
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", Fernet.generate_key().decode())
 
     response = client.post(f"{CANVAS}/sync", json={}, headers=headers)
@@ -289,3 +286,58 @@ def test_reconnecting_replaces_the_previously_selected_courses(canvas_app, clien
         del FakeCanvas.assignments["202"]
 
 
+
+
+def test_sync_all_resyncs_every_connected_account(canvas_app, client, make_user_headers, encryption_key, monkeypatch):
+    import app.cli as cli_module
+
+    monkeypatch.setattr(cli_module, "CanvasClient", FakeCanvas)
+
+    student1 = make_user_headers("student1")
+    client.post(f"{CANVAS}/connect", json=import_payload(), headers=student1)
+    FakeCanvas.assignments["101"][0]["title"] = "Renamed by sync-all"
+
+    runner = canvas_app.test_cli_runner()
+    result = runner.invoke(args=["canvas", "sync-all"])
+
+    assert "synced=1 failed=0" in result.output
+    assignments = client.get(ASSIGNMENTS, headers=student1).get_json()
+    project = next(a for a in assignments if a["canvas_id"] == "5001")
+    assert project["title"] == "Renamed by sync-all"
+    FakeCanvas.assignments["101"][0]["title"] = "Project report"
+
+
+def test_sync_all_skips_accounts_with_no_courses_selected(canvas_app, encryption_key, monkeypatch):
+    import app.cli as cli_module
+
+    monkeypatch.setattr(cli_module, "CanvasClient", FakeCanvas)
+
+    runner = canvas_app.test_cli_runner()
+    result = runner.invoke(args=["canvas", "sync-all"])
+    assert "synced=0 failed=0" in result.output
+
+
+def test_sync_all_does_nothing_when_canvas_is_not_configured(app):
+    app.config["CANVAS_BASE_URL"] = None
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=["canvas", "sync-all"])
+    assert "not configured" in result.output
+
+
+def test_sync_all_disconnects_and_continues_past_a_broken_connection(canvas_app, client, make_user_headers, encryption_key, monkeypatch):
+    import app.cli as cli_module
+
+    monkeypatch.setattr(cli_module, "CanvasClient", FakeCanvas)
+
+    headers = make_user_headers("student1")
+    client.post(f"{CANVAS}/connect", json=import_payload(), headers=headers)
+
+    from cryptography.fernet import Fernet
+    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", Fernet.generate_key().decode())
+
+    runner = canvas_app.test_cli_runner()
+    result = runner.invoke(args=["canvas", "sync-all"])
+    assert "synced=0 failed=1" in result.output
+
+    status = client.get(f"{CANVAS}/status", headers=headers).get_json()
+    assert status["status"] == "disconnected"
