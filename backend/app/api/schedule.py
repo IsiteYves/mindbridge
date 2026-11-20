@@ -101,9 +101,7 @@ def get_schedule():
 
 MAX_WORKLOAD_SPAN_DAYS = 180
 DEFAULT_WORKLOAD_SPAN_DAYS = 60
-# A day's own `count` is always the true total, even once its displayed
-# `items` list has been capped — so a cluster of work is never hidden by a
-# truncated list silently also becoming a wrong number.
+# A day's own `count` is always the true total
 MAX_ITEMS_PER_DAY = 10
 
 
@@ -134,8 +132,7 @@ def get_workload():
     if (end - start).days > MAX_WORKLOAD_SPAN_DAYS:
         return jsonify(error=f"the range cannot span more than {MAX_WORKLOAD_SPAN_DAYS} days"), 400
 
-    # Optional: scope the heatmap to one assignment, for that assignment's own
-    # page. Omitted, this is the whole-plan view used on the assignments list.
+    # optional: let us scope the heatmap to one assignment
     assignment_filter = request.args.get("assignment_id")
     if assignment_filter is not None:
         try:
