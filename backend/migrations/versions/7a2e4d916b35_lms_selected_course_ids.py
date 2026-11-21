@@ -3,14 +3,14 @@ connection: a later sync re-pulls the courses chosen at connect time without
 asking the student to pick them again.
 
 Revision ID: 7a2e4d916b35
-Revises: 5e7d0f3a9b14
+Revises: 2d8f61a3c9e7
 """
 
 import sqlalchemy as sa
 from alembic import op
 
 revision = "7a2e4d916b35"
-down_revision = "5e7d0f3a9b14"
+down_revision = "2d8f61a3c9e7"
 branch_labels = None
 depends_on = None
 
