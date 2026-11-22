@@ -54,7 +54,7 @@ export default function FocusTimerCard() {
   useEffect(() => {
     if (!session) return;
     if (remaining <= 0) {
-      end(true);
+      void end(true);
       return;
     }
     const id = window.setTimeout(() => setRemaining((value) => value - 1), 1000);
