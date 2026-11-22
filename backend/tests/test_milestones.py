@@ -61,7 +61,9 @@ def test_milestone_cannot_be_after_assignment_deadline(client, make_user_headers
     assert response.status_code == 400
 
 
-def test_list_returns_milestones_ordered_by_target_date(client, make_user_headers):
+def test_list_returns_milestones_in_position_order_not_date_order(client, make_user_headers):
+    # The list is the student's own reading order (position). The timeline rail
+    # sorts by date separately, so the two are allowed to disagree.
     headers = make_user_headers("student1")
     assignment_id = make_assignment(client, headers)
     add_milestone(client, headers, assignment_id, title="Final", target_date="2026-11-18T00:00:00+00:00")
@@ -69,7 +71,7 @@ def test_list_returns_milestones_ordered_by_target_date(client, make_user_header
 
     titles = [m["title"] for m in client.get(f"{ASSIGNMENTS}/{assignment_id}/milestones", headers=headers).get_json()]
 
-    assert titles == ["First", "Final"]
+    assert titles == ["Final", "First"]
 
 
 def test_get_update_and_delete_own_milestone(client, make_user_headers):

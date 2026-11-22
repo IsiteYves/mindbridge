@@ -41,6 +41,9 @@ def _body_for(kind: str, title: str, course: str, when: dt.date, offset_days: in
     return f'"{title}" ({course}) is due in {offset_days} day{plural}, on {when:%d %b %Y}.'
 
 
+NO_OFFSET_SENTINEL = -1  # stored in place of NULL for overdue and new-item reminders
+
+
 def _enabled_offsets(user_id: int) -> set[int]:
    
     rows = {p.offset_days: p.enabled for p in db.session.query(ReminderPreference).filter_by(user_id=user_id)}
@@ -54,7 +57,9 @@ def _claim_and_send(*, user, assignment, milestone, kind, offset_days, today, ti
         assignment_id=assignment.id,
         milestone_id=milestone.id if milestone else None,
         kind=kind,
-        offset_days=offset_days,
+        # NULL never collides in a unique index, so overdue/new-item rows would be
+        # stored again on every run. Store a sentinel so the dedupe constraint holds.
+        offset_days=NO_OFFSET_SENTINEL if offset_days is None else offset_days,
         fired_for_date=today,
         sent_at=None,
     )
