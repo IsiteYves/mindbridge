@@ -1,8 +1,3 @@
-/* ═══════════════════════════════════════════════════════
-   MINDBRIDGE — Design tokens and shell
-   Palette: deep teal ink, mint-tinted surface, teal accent.
-   ═══════════════════════════════════════════════════════ */
-
 :root {
   --brand: #0f766e;
   --brand-hover: #0b5e58;
@@ -39,10 +34,7 @@
   --topbar-height: 56px;
 
   /* Used only inside the authenticated shell (sidebar, topbar, and headings
-     within it) via the new classes added below. The shared `body` font and
-     the public pages' headings are untouched, so nothing outside a signed-in
-     session changes. System stacks only: no external font request, so the
-     authenticated shell never has a loading flash or a network dependency. */
+     within it) */
   --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
   --font-mono: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
 
@@ -113,7 +105,6 @@
   color-scheme: dark;
 }
 
-/* ── Base ─────────────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -176,7 +167,6 @@ h2 {
   font-weight: 700;
 }
 
-/* ── Sidebar shell ────────────────────────────────── */
 .sidebar {
   position: fixed;
   top: 0;
@@ -253,7 +243,6 @@ h2 {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Buttons ignore the sidebar's text color unless the background is reset too; otherwise the browser's light button background shows. */
 .sidebar .link-button {
   display: block;
   width: 100%;
@@ -274,9 +263,6 @@ h2 {
   color: #ffffff;
 }
 
-/* .app-shell is the flex column beside the fixed sidebar: topbar, then page
-   content. .admin-main no longer carries the sidebar offset itself, so the
-   topbar lines up with the page below it instead of starting at the left edge. */
 .app-shell {
   display: flex;
   flex-direction: column;
@@ -297,7 +283,6 @@ h2 {
   gap: 24px;
 }
 
-/* ── Typography helpers ───────────────────────────── */
 .muted {
   color: var(--text-muted);
 }
@@ -324,7 +309,6 @@ h2 {
   gap: 6px;
 }
 
-/* ── Cards ────────────────────────────────────────── */
 .card {
   display: grid;
   gap: 16px;
@@ -345,7 +329,6 @@ h2 {
   gap: 8px;
 }
 
-/* ── Stat tiles ───────────────────────────────────── */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -395,7 +378,6 @@ h2 {
   color: var(--text-muted);
 }
 
-/* ── Buttons ──────────────────────────────────────── */
 .button {
   display: inline-flex;
   align-items: center;
@@ -443,7 +425,6 @@ h2 {
   box-shadow: none;
 }
 
-/* ── Forms ────────────────────────────────────────── */
 .form {
   display: grid;
   gap: 14px;
@@ -486,7 +467,6 @@ h2 {
   box-shadow: 0 0 0 3px var(--brand-soft);
 }
 
-/* ── Lists and status ─────────────────────────────── */
 .list {
   display: grid;
 }
@@ -550,7 +530,6 @@ h2 {
   font-weight: 600;
 }
 
-/* ── Narrow screens: sidebar becomes a top bar ───── */
 @media (max-width: 820px) {
   .sidebar {
     position: sticky;
@@ -585,8 +564,6 @@ h2 {
     padding: 20px 16px 40px;
   }
 }
-
-/* ── Logged-out top bar ───────────────────────────── */
 
 .topbar {
   position: sticky;
@@ -624,7 +601,6 @@ h2 {
   }
 }
 
-/* ── Landing page (signed out) ────────────────────── */
 .landing {
   display: grid;
   gap: 72px;
@@ -721,7 +697,6 @@ h2 {
   }
 }
 
-/* ── Password checklist ───────────────────────────── */
 .rules {
   display: grid;
   gap: 4px;
@@ -749,7 +724,6 @@ h2 {
   font-weight: 600;
 }
 
-/* ── Check-in choices ─────────────────────────────── */
 .choice-set {
   display: grid;
   gap: 10px;
@@ -789,7 +763,6 @@ h2 {
   accent-color: var(--brand);
 }
 
-/* ── Auth split layout (signed out) ───────────────── */
 .page:has(> .auth-split) {
   max-width: none;
   padding: 0;
@@ -874,7 +847,6 @@ h2 {
   }
 }
 
-/* ── Site footer (signed out) ─────────────────────── */
 .site-footer {
   padding: 48px 28px 24px;
   background: var(--surface-strong);
@@ -927,10 +899,7 @@ h2 {
   }
 }
 
-/* ── App shell additions: topbar, mono labels, nudge card ────────────
-   Everything below is scoped to classes used only inside the signed-in
-   shell. The shared body font, h1/h2 rules and every `.landing`/`.hero`/
-   `.auth-*` class used on the public pages are untouched. */
+/* ── App shell additions: topbar, mono labels, nudge card */
 
 .mono-label {
   font-family: var(--font-mono);
@@ -1000,7 +969,7 @@ h2 {
   font-weight: 700;
 }
 
-/* ── Sidebar motivational card ────────────────────────────────────── */
+/* ── Sidebar motivational card */
 .nudge-card {
   display: grid;
   gap: 6px;
@@ -1026,7 +995,6 @@ h2 {
   gap: 2px;
 }
 
-/* ── Settings page ────────────────────────────────────────────────── */
 .settings-tabs {
   display: flex;
   gap: 4px;
@@ -1092,7 +1060,6 @@ h2 {
   border-top: 1px solid var(--line);
 }
 
-/* ── Planning guide ───────────────────────────────────────────────── */
 .planning-guide {
   display: grid;
   gap: 20px;
@@ -1114,7 +1081,6 @@ h2 {
   }
 }
 
-/* ── Milestone rail ───────────────────────────────────────────────── */
 .milestone-rail {
   display: grid;
   gap: 20px;
@@ -1206,7 +1172,6 @@ h2 {
   color: var(--text);
 }
 
-/* ── Editable plan list ───────────────────────────────────────────── */
 .pill {
   padding: 2px 10px;
   border-radius: var(--radius-pill);
@@ -1287,7 +1252,6 @@ h2 {
   }
 }
 
-/* ── Notification settings ────────────────────────────────────────── */
 .notification-settings {
   display: grid;
   gap: 4px;
@@ -1330,7 +1294,6 @@ h2 {
   margin-bottom: 8px;
 }
 
-/* ── Dashboard row: daily goal + focus timer ─────────────────────── */
 .dashboard-row {
   display: grid;
   grid-template-columns: 1.6fr 1fr;
@@ -1407,7 +1370,6 @@ h2 {
   }
 }
 
-/* ── Workload heatmap ─────────────────────────────────────────────── */
 .workload-heatmap {
   display: grid;
   gap: 12px;
@@ -1437,8 +1399,6 @@ h2 {
   transition: opacity 0.15s ease;
 }
 
-/* Groups each week into a proper ARIA row without affecting layout: the
-   cells inside still lay out directly against the parent's 7-column grid. */
 .heatmap-row {
   display: contents;
 }
@@ -1496,7 +1456,6 @@ h2 {
   margin-bottom: 8px;
 }
 
-/* ── Canvas integration panel ─────────────────────────────────────── */
 .canvas-integration {
   display: grid;
   gap: 12px;
@@ -1508,7 +1467,6 @@ h2 {
   flex-wrap: wrap;
 }
 
-/* ── Plan review (agent, advisory only) ──────────────────────────── */
 .plan-review {
   display: grid;
   gap: 14px;
