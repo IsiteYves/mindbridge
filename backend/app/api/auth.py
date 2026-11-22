@@ -166,7 +166,6 @@ def login():
     user = _find_user(email)
     now = dt.datetime.now(dt.timezone.utc)
 
-    # A locked account gets the same message as a wrong password
     locked = user is not None and user.locked_until is not None and user.locked_until > now
     if locked or user is None or not isinstance(password, str) or not check_password_hash(user.password_hash, password):
         if user is not None and not locked:
