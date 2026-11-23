@@ -1,4 +1,6 @@
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
+
+import { endSession } from "@/lib/session";
 
 // "Home" is deliberately not listed yet: for a signed-in user "/" redirects
 // straight to "/assignments" today (see App.tsx), so a separate Home entry
@@ -14,7 +16,13 @@ const LINKS = [
 
 // Rendered only for signed-in users; logged-out visitors see PublicHeader instead.
 export default function NavBar() {
+  const navigate = useNavigate();
   const { pathname } = useLocation();
+
+  async function signOut() {
+    await endSession();
+    navigate("/login", { replace: true });
+  }
 
   function isActive(to: string) {
     return pathname === to || pathname.startsWith(`${to}/`);
@@ -55,6 +63,16 @@ export default function NavBar() {
         >
           Planning guide
         </Link>
+        <Link
+          to="/settings"
+          className={`nav-link${isActive("/settings") ? " active" : ""}`}
+          aria-current={isActive("/settings") ? "page" : undefined}
+        >
+          Settings
+        </Link>
+        <button type="button" className="nav-link" onClick={signOut}>
+          Sign out
+        </button>
       </div>
     </aside>
   );
