@@ -141,7 +141,7 @@ export default function CanvasIntegration() {
               confirmLabel="Disconnect"
               onConfirm={() => {
                 setConfirmingDisconnect(false);
-                disconnect();
+                void disconnect();
               }}
               onCancel={() => setConfirmingDisconnect(false)}
             />

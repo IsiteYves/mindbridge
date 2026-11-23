@@ -1915,3 +1915,9 @@ h2 {
   background: var(--danger);
   color: #ffffff;
 }
+
+.nav-backdrop {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}

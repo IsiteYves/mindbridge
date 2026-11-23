@@ -95,7 +95,7 @@ export default function App() {
     <>
       <ToastHost />
       <NavBar open={navOpen} onClose={() => setNavOpen(false)} />
-      {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} />}
+      {navOpen && <button type="button" className="nav-backdrop" aria-label="Close menu" onClick={() => setNavOpen(false)} />}
       <div className="app-shell">
         <AppTopbar navOpen={navOpen} onToggleNav={() => setNavOpen((open) => !open)} />
         <main className="admin-main">

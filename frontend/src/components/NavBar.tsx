@@ -35,13 +35,14 @@ export default function NavBar({ open, onClose }: { open: boolean; onClose: () =
         MindBridge
       </Link>
 
-      <nav className="sidebar-nav" aria-label="Main navigation" onClick={onClose}>
+      <nav className="sidebar-nav" aria-label="Main navigation">
         {LINKS.map((link) => (
           <Link
             key={link.to}
             to={link.to}
             className={`nav-link${isActive(link.to) ? " active" : ""}`}
             aria-current={isActive(link.to) ? "page" : undefined}
+            onClick={onClose}
           >
             <link.icon size={18} strokeWidth={1.75} aria-hidden="true" />
             {link.label}
@@ -54,11 +55,12 @@ export default function NavBar({ open, onClose }: { open: boolean; onClose: () =
         <p className="muted">Small milestones make room for your bigger ambitions.</p>
       </div>
 
-      <div className="sidebar-footer" onClick={onClose}>
+      <div className="sidebar-footer">
         <Link
           to="/planning-guide"
           className={`nav-link${isActive("/planning-guide") ? " active" : ""}`}
           aria-current={isActive("/planning-guide") ? "page" : undefined}
+          onClick={onClose}
         >
           <BookOpen size={18} strokeWidth={1.75} aria-hidden="true" />
           Planning guide
@@ -67,11 +69,19 @@ export default function NavBar({ open, onClose }: { open: boolean; onClose: () =
           to="/settings"
           className={`nav-link${isActive("/settings") ? " active" : ""}`}
           aria-current={isActive("/settings") ? "page" : undefined}
+          onClick={onClose}
         >
           <Settings size={18} strokeWidth={1.75} aria-hidden="true" />
           Settings
         </Link>
-        <button type="button" className="nav-link" onClick={signOut}>
+        <button
+          type="button"
+          className="nav-link"
+          onClick={() => {
+            onClose();
+            void signOut();
+          }}
+        >
           <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />
           Sign out
         </button>
