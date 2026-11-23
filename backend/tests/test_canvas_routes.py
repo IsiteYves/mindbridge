@@ -82,7 +82,7 @@ def test_import_creates_assignments_and_skips_items_without_due_date(canvas_app,
 def test_reimport_updates_existing_rows_and_keeps_status(canvas_app, client, make_user_headers):
     headers = make_user_headers("student1")
     client.post(f"{CANVAS}/import", json=import_payload(), headers=headers)
-    assignment_id = client.get(ASSIGNMENTS, headers=headers).get_json()[0]["id"]
+    assignment_id = client.get(ASSIGNMENTS, headers=headers).get_json()["items"][0]["id"]
     client.patch(f"{ASSIGNMENTS}/{assignment_id}", json={"status": "in_progress"}, headers=headers)
     FakeCanvas.assignments["101"][0]["title"] = "Final project report"
 
@@ -147,7 +147,7 @@ def test_imported_rubric_is_saved_on_the_assignment(canvas_app, client, make_use
     headers = make_user_headers("student1")
     client.post(f"{CANVAS}/import", json=import_payload(), headers=headers)
 
-    listed = client.get(ASSIGNMENTS, headers=headers).get_json()
+    listed = client.get(ASSIGNMENTS, headers=headers).get_json()["items"]
     project = next(a for a in listed if a["canvas_id"] == "5001")
     assert project["rubric"] == [{"title": "Analysis", "points": 10}]
 
@@ -232,7 +232,7 @@ def test_disconnect_clears_the_token_but_keeps_imported_assignments(canvas_app, 
     assert response.status_code == 200
     assert response.get_json()["status"] == "disconnected"
 
-    assignments = client.get(ASSIGNMENTS, headers=headers).get_json()
+    assignments = client.get(ASSIGNMENTS, headers=headers).get_json()["items"]
     assert len(assignments) == 1  # untouched by disconnecting
 
 
@@ -301,7 +301,7 @@ def test_sync_all_resyncs_every_connected_account(canvas_app, client, make_user_
     result = runner.invoke(args=["canvas", "sync-all"])
 
     assert "synced=1 failed=0" in result.output
-    assignments = client.get(ASSIGNMENTS, headers=student1).get_json()
+    assignments = client.get(ASSIGNMENTS, headers=student1).get_json()["items"]
     project = next(a for a in assignments if a["canvas_id"] == "5001")
     assert project["title"] == "Renamed by sync-all"
     FakeCanvas.assignments["101"][0]["title"] = "Project report"
@@ -341,3 +341,30 @@ def test_sync_all_disconnects_and_continues_past_a_broken_connection(canvas_app,
 
     status = client.get(f"{CANVAS}/status", headers=headers).get_json()
     assert status["status"] == "disconnected"
+
+def test_available_courses_mark_the_saved_selection(canvas_app, client, make_user_headers, encryption_key):
+    headers = make_user_headers("student1")
+    client.post(f"{CANVAS}/connect", json={"token": TOKEN, "course_ids": ["101"]}, headers=headers)
+
+    courses = client.get(f"{CANVAS}/courses/available", headers=headers).get_json()
+    assert courses == [{"id": "101", "name": "Software Engineering", "selected": True}]
+
+
+def test_changing_the_selection_uses_the_stored_token_and_resyncs(canvas_app, client, make_user_headers, encryption_key):
+    headers = make_user_headers("student1")
+    client.post(f"{CANVAS}/connect", json={"token": TOKEN, "course_ids": ["101"]}, headers=headers)
+
+    response = client.put(f"{CANVAS}/courses/selection", json={"course_ids": ["101"]}, headers=headers)
+    assert response.status_code == 200
+    assert response.get_json()["connection"]["status"] == "connected"
+
+
+def test_changing_the_selection_refuses_unknown_courses(canvas_app, client, make_user_headers, encryption_key):
+    headers = make_user_headers("student1")
+    client.post(f"{CANVAS}/connect", json={"token": TOKEN, "course_ids": ["101"]}, headers=headers)
+    assert client.put(f"{CANVAS}/courses/selection", json={"course_ids": ["999"]}, headers=headers).status_code == 400
+
+
+def test_available_courses_need_a_connection_first(canvas_app, client, make_user_headers, encryption_key):
+    headers = make_user_headers("student1")
+    assert client.get(f"{CANVAS}/courses/available", headers=headers).status_code == 409

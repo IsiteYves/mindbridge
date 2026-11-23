@@ -3,6 +3,7 @@ export const PASSWORD_RULES: { label: string; test: (password: string) => boolea
   { label: "At least 6 characters", test: (password) => password.length >= 6 },
   { label: "An uppercase letter", test: (password) => /[A-Z]/.test(password) },
   { label: "A lowercase letter", test: (password) => /[a-z]/.test(password) },
+  { label: "A number", test: (password) => /[0-9]/.test(password) },
   { label: "A special character (for example ! or #)", test: (password) => /[^A-Za-z0-9]/.test(password) },
 ];
 

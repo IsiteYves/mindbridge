@@ -48,7 +48,7 @@ def test_review_404s_for_an_assignment_that_does_not_exist(client, make_user_hea
 # ── Always-available, rule-based behaviour (no AI provider needed) ──────────
 
 
-def test_a_well_balanced_plan_with_nothing_overdue_gets_a_reassuring_summary(app, client, make_user_headers, monkeypatch):
+def test_a_plan_with_no_findings_says_what_was_checked(app, client, make_user_headers, monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     headers = make_user_headers("student1")
     assignment_id = make_assignment(client, headers)
@@ -58,7 +58,7 @@ def test_a_well_balanced_plan_with_nothing_overdue_gets_a_reassuring_summary(app
     assert response.status_code == 200
     body = response.get_json()
     assert body["findings"] == []
-    assert "balanced" in body["summary"].lower() or "nothing" in body["summary"].lower()
+    assert body["summary"] == "Milestones cover the rubric and finish before the deadline."
     assert body["replan_suggestion"] is None
     assert "generated_at" in body
 

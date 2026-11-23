@@ -3,17 +3,13 @@ from email.message import EmailMessage
 
 from flask import current_app
 
-SUBJECTS = {
-    "signup": "Verify your MindBridge email",
-    "reset": "Reset your MindBridge password",
-}
-
+from app.services.email_templates import code_email, message_email
 
 class MailError(Exception):
     """Raised when an email cannot be sent. The message is safe to show to users."""
 
 
-def _deliver(to, subject, body):
+def _deliver(to, subject, text, html_body):
     host = current_app.config.get("SMTP_HOST")
     if not host:
         raise MailError("Email sending is not configured on this server")
@@ -22,7 +18,8 @@ def _deliver(to, subject, body):
     message["Subject"] = subject
     message["From"] = current_app.config["SMTP_FROM"]
     message["To"] = to
-    message.set_content(body)
+    message.set_content(text)
+    message.add_alternative(html_body, subtype="html")
     try:
         with smtplib.SMTP(host, current_app.config["SMTP_PORT"], timeout=15) as smtp:
             smtp.starttls()
@@ -39,12 +36,8 @@ def send_code(to, purpose, code):
     if custom is not None:
         custom(to, purpose, code)
         return
-    _deliver(
-        to,
-        SUBJECTS[purpose],
-        f"Your MindBridge code is {code}. It expires in 10 minutes.\n\n"
-        "If you did not ask for this, you can ignore this email.",
-    )
+    subject, text, html_body = code_email(purpose, code)
+    _deliver(to, subject, text, html_body)
 
 
 def send_reminder_email(to, subject, body):
@@ -53,4 +46,5 @@ def send_reminder_email(to, subject, body):
     if custom is not None:
         custom(to, subject, body)
         return
-    _deliver(to, subject, body)
+    text, html_body = message_email(subject, body)
+    _deliver(to, subject, text, html_body)

@@ -25,6 +25,7 @@ Response shape:
 from flask import Blueprint, jsonify
 
 from app.api.assignments import owned_assignment_or_404
+from app.api.common import NOT_PENDING_MESSAGE, is_pending
 from app.api.auth import token_required
 from app.services.agent import review_plan
 
@@ -35,4 +36,6 @@ agent_bp = Blueprint("agent", __name__)
 @token_required
 def review_plan_route(assignment_id):
     assignment = owned_assignment_or_404(assignment_id)
+    if not is_pending(assignment):
+        return jsonify(error=NOT_PENDING_MESSAGE), 400
     return jsonify(review_plan(assignment, assignment.milestones))

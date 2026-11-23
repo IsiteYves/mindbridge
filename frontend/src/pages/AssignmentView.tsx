@@ -5,10 +5,16 @@ import MilestoneRail from "@/components/MilestoneRail";
 import PlanReview from "@/components/PlanReview";
 import WorkloadHeatmap from "@/components/WorkloadHeatmap";
 import { Assignment, Milestone, RubricCriterion, Status, apiRequest, errorMessage } from "@/lib/api";
+import { isPending } from "@/lib/assignments";
 import { formatDate, fromLocalInput, toLocalInput } from "@/lib/dates";
+import { toast } from "@/lib/toast";
 
 const STATUS_OPTIONS: Status[] = ["not_started", "in_progress", "done"];
-const STATUS_LABEL = (status: Status) => status.replace("_", " ");
+const STATUS_LABEL: Record<Status, string> = {
+  not_started: "Not Started",
+  in_progress: "In Progress",
+  done: "Done",
+};
 
 type CriterionDraft = { title: string; weight: string };
 
@@ -35,6 +41,7 @@ export default function AssignmentView({ id }: { id: string }) {
   const [replace, setReplace] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const pending = assignment ? isPending(assignment) : true;
 
   const fetchAssignment = useCallback(
     () =>
@@ -74,13 +81,12 @@ export default function AssignmentView({ id }: { id: string }) {
       if (!title) continue;
       const weight = parseWeight(draft.weight);
       if (weight === undefined) {
-        setError(`"${title}" needs a weight from 0 to 100, or left blank.`);
+        toast.error(`"${title}" needs a weight from 0 to 100, or left blank.`);
         return;
       }
       cleaned.push({ title, weight });
     }
     setBusy(true);
-    setError(null);
     try {
       await apiRequest<Milestone[]>(`/assignments/${id}/milestones/from-rubric`, {
         method: "POST",
@@ -88,11 +94,26 @@ export default function AssignmentView({ id }: { id: string }) {
       });
       setReplace(false);
       applyLoaded(await fetchAssignment());
+      toast.success("Milestones generated from the rubric.");
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setBusy(false);
     }
+  }
+
+  async function changeStatus(next: Status) {
+    try {
+      const updated = await apiRequest<Assignment>(`/assignments/${id}`, { method: "PATCH", body: { status: next } });
+      setAssignment(updated);
+      toast.success("Status updated.");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  }
+
+  function refreshAssignment() {
+    apiRequest<Assignment>(`/assignments/${id}`).then(setAssignment, () => undefined);
   }
 
   function updateCriterion(index: number, field: keyof CriterionDraft, value: string) {
@@ -103,7 +124,6 @@ export default function AssignmentView({ id }: { id: string }) {
     if (toIndex < 0 || toIndex >= milestones.length) return;
     const next = [...milestones];
     [next[fromIndex], next[toIndex]] = [next[toIndex], next[fromIndex]];
-    setError(null);
     try {
       const reordered = await apiRequest<Milestone[]>(`/assignments/${id}/milestones/order`, {
         method: "PUT",
@@ -111,7 +131,7 @@ export default function AssignmentView({ id }: { id: string }) {
       });
       setMilestones(reordered);
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -124,7 +144,22 @@ export default function AssignmentView({ id }: { id: string }) {
             {assignment.course} · due {formatDate(assignment.deadline)}
           </p>
         )}
+        {assignment && (
+          <label className="field">
+            Status
+            <select value={assignment.status} onChange={(event) => changeStatus(event.target.value as Status)}>
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {STATUS_LABEL[option]}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {error && <p className="error">{error}</p>}
+        {assignment && !pending && (
+          <p className="notice">This assignment is closed: it is submitted or its deadline has passed.</p>
+        )}
       </section>
 
       <section className="card">
@@ -137,6 +172,7 @@ export default function AssignmentView({ id }: { id: string }) {
         <WorkloadHeatmap assignmentId={Number(id)} />
       </section>
 
+      {pending && (
       <section className="card">
         <div className="card-title">
           <h2>Plan review</h2>
@@ -150,14 +186,46 @@ export default function AssignmentView({ id }: { id: string }) {
           }
         />
       </section>
+      )}
 
+      {pending && (
       <section className="card">
-        <h2>Rubric criteria</h2>
-        <p className="muted">
-          Each criterion becomes one milestone. Set a weight — the share of the rubric it covers — and milestones
-          get proportional time instead of an even split; leave weight blank for an even split. Edit, add or remove
-          criteria before generating.
-        </p>
+        <div className="card-title">
+          <h2>Your plan</h2>
+          <span className="pill">{milestones.length} milestones</span>
+        </div>
+        <p className="muted">Reordering never changes a target date. The timeline reads by date.</p>
+        {milestones.length === 0 && <p className="muted">No milestones yet. Generate from the rubric, or add one below.</p>}
+        <ul className="list milestone-list">
+          {milestones.map((milestone, index) => (
+            <MilestoneRow
+              key={milestone.id}
+              milestone={milestone}
+              isFirst={index === 0}
+              isLast={index === milestones.length - 1}
+              deadline={assignment?.deadline ?? null}
+              onMoveUp={() => reorder(index, index - 1)}
+              onMoveDown={() => reorder(index, index + 1)}
+              onSaved={(saved) => {
+                setMilestones((current) => current.map((m) => (m.id === saved.id ? saved : m)));
+                refreshAssignment();
+              }}
+              onDeleted={(removedId) =>
+                setMilestones((current) => current.filter((m) => m.id !== removedId))
+              }
+              onError={toast.error}
+            />
+          ))}
+        </ul>
+        <AddMilestoneForm
+          assignmentId={id}
+          deadline={assignment?.deadline ?? null}
+          onAdded={(created) => setMilestones((current) => [...current, created])}
+          onError={toast.error}
+        />
+        <details className="rubric-editor">
+          <summary>Rubric and generation</summary>
+          <p className="muted small">Each criterion becomes a milestone. Its weight sets its time share; blank splits evenly.</p>
         <form className="form" onSubmit={generate}>
           {criteria.map((draft, index) => (
             <div className="form-row" key={index}>
@@ -206,7 +274,7 @@ export default function AssignmentView({ id }: { id: string }) {
               </label>
             )}
           </div>
-          <button className="button" type="submit" disabled={busy || !assignment?.deadline}>
+          <button className="button" type="submit" disabled={busy || !pending}>
             {busy ? "Generating…" : "Generate milestones"}
           </button>
           {assignment && !assignment.deadline && (
@@ -215,43 +283,9 @@ export default function AssignmentView({ id }: { id: string }) {
             </p>
           )}
         </form>
+        </details>
       </section>
-
-      <section className="card">
-        <div className="card-title">
-          <h2>Edit your plan</h2>
-          <span className="pill">{milestones.length} milestones</span>
-        </div>
-        <p className="muted">
-          This list is your own reading order — reordering it never changes a milestone's target date. The timeline
-          above always reads by date.
-        </p>
-        {milestones.length === 0 && <p className="muted">No milestones yet. Generate from the rubric, or add one below.</p>}
-        <ul className="list milestone-list">
-          {milestones.map((milestone, index) => (
-            <MilestoneRow
-              key={milestone.id}
-              milestone={milestone}
-              isFirst={index === 0}
-              isLast={index === milestones.length - 1}
-              deadline={assignment?.deadline ?? null}
-              onMoveUp={() => reorder(index, index - 1)}
-              onMoveDown={() => reorder(index, index + 1)}
-              onSaved={(saved) => setMilestones((current) => current.map((m) => (m.id === saved.id ? saved : m)))}
-              onDeleted={(removedId) =>
-                setMilestones((current) => current.filter((m) => m.id !== removedId))
-              }
-              onError={setError}
-            />
-          ))}
-        </ul>
-        <AddMilestoneForm
-          assignmentId={id}
-          deadline={assignment?.deadline ?? null}
-          onAdded={(created) => setMilestones((current) => [...current, created])}
-          onError={setError}
-        />
-      </section>
+      )}
     </>
   );
 }
@@ -368,7 +402,7 @@ function MilestoneRow({
           <select value={status} onChange={(event) => setStatus(event.target.value as Status)}>
             {STATUS_OPTIONS.map((option) => (
               <option key={option} value={option}>
-                {STATUS_LABEL(option)}
+                {STATUS_LABEL[option]}
               </option>
             ))}
           </select>

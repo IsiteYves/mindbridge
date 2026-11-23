@@ -112,7 +112,7 @@ export default function CheckInPage() {
           <ul className="list">
             {history.map((checkin) => (
               <li key={checkin.id}>
-                <strong>{checkin.checkin_date}</strong> · {MOOD_LABEL(checkin.mood)} · stress{" "}
+                <strong>{checkin.checkin_date}</strong> · {MOOD_LABEL(checkin.mood)} · Stress{" "}
                 {checkin.stress_level} of 5
               </li>
             ))}

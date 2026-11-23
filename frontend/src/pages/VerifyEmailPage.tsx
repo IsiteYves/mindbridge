@@ -1,8 +1,10 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
 import AuthLayout from "@/components/AuthLayout";
-import { apiRequest, errorMessage, setToken } from "@/lib/api";
+import { ApiError, apiRequest, errorMessage, setToken } from "@/lib/api";
+
+const RESEND_COOLDOWN_SECONDS = 300;
 
 export default function VerifyEmailPage() {
   const navigate = useNavigate();
@@ -12,6 +14,24 @@ export default function VerifyEmailPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resendAt, setResendAt] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (resendAt <= Date.now()) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [resendAt]);
+
+  const secondsLeft = Math.max(0, Math.ceil((resendAt - now) / 1000));
+  const minutes = Math.floor(secondsLeft / 60);
+  const seconds = String(secondsLeft % 60).padStart(2, "0");
+
+  function startCooldown(duration: number) {
+    const start = Date.now();
+    setNow(start);
+    setResendAt(start + duration * 1000);
+  }
 
   async function verify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,8 +59,12 @@ export default function VerifyEmailPage() {
         body: { email },
       });
       setNotice(message);
+      startCooldown(RESEND_COOLDOWN_SECONDS);
     } catch (err) {
       setError(errorMessage(err));
+      if (err instanceof ApiError && typeof err.details.retry_after === "number") {
+        startCooldown(err.details.retry_after);
+      }
     }
   }
 
@@ -68,8 +92,8 @@ export default function VerifyEmailPage() {
         <button className="button" type="submit" disabled={busy || code.length !== 6}>
           {busy ? "Verifying…" : "Verify and continue"}
         </button>
-        <button className="button secondary" type="button" onClick={resend} disabled={!email}>
-          Send a new code
+        <button className="button secondary" type="button" onClick={resend} disabled={!email || secondsLeft > 0}>
+          {secondsLeft > 0 ? `Send a new code in ${minutes}:${seconds}` : "Send a new code"}
         </button>
       </form>
       <p className="muted">

@@ -82,6 +82,7 @@ def test_email_is_normalized_to_lowercase(client):
         ("sturdy-pass1", "an uppercase letter"),
         ("STURDY-PASS1", "a lowercase letter"),
         ("Sturdypass1", "a special character"),
+        ("Sturdy-pass", "a number"),
     ],
 )
 def test_register_rejects_weak_passwords(client, password, fragment):
@@ -401,3 +402,51 @@ def test_protected_route_rejects_token_for_deleted_user(app, secure_client):
     response = secure_client.get("/secure", headers=bearer(token))
 
     assert response.status_code == 401
+
+
+def test_a_failed_email_does_not_leave_an_account_behind(app, client, monkeypatch):
+    from app.extensions import db
+    from app.models import User
+    from app.services.mailer import MailError
+
+    def fail(*args, **kwargs):
+        raise MailError("We could not send the email. Try again in a moment.")
+
+    monkeypatch.setitem(app.config, "MAILER", fail)
+    response = register(client)
+    assert response.status_code == 503
+    with app.app_context():
+        assert db.session.query(User).filter_by(email=EMAIL).first() is None
+
+
+def test_registering_an_unverified_existing_email_says_so(client):
+    assert register(client).status_code == 201
+    response = register(client)
+    assert response.status_code == 409
+    assert response.get_json()["unverified"] is True
+
+
+def test_resending_within_five_minutes_is_refused_with_retry_after(client):
+    assert register(client).status_code == 201
+    response = client.post("/api/v1/auth/resend-code", json={"email": EMAIL})
+    assert response.status_code == 429
+    assert 0 < response.get_json()["retry_after"] <= 300
+
+
+def test_a_legacy_password_hash_signs_in_and_is_upgraded_to_argon2(app, client, make_user_headers):
+    from werkzeug.security import generate_password_hash
+
+    from app.extensions import db
+    from app.models import User
+
+    make_user_headers("legacy")
+    with app.app_context():
+        user = db.session.query(User).filter_by(email="legacy@example.com").one()
+        user.password_hash = generate_password_hash("Sturdy-pass1")
+        db.session.commit()
+
+    response = client.post("/api/v1/auth/login", json={"email": "legacy@example.com", "password": "Sturdy-pass1"})
+    assert response.status_code == 200
+    with app.app_context():
+        user = db.session.query(User).filter_by(email="legacy@example.com").one()
+        assert user.password_hash.startswith("$argon2id$")

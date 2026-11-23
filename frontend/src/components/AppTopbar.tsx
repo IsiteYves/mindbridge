@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router";
 
+import { endSession } from "@/lib/session";
 import { initials, useCurrentUser } from "@/lib/useCurrentUser";
 import { useTheme } from "@/lib/useTheme";
 
@@ -27,6 +29,31 @@ export default function AppTopbar() {
   const [now, setNow] = useState(() => new Date());
   const [theme, toggleTheme] = useTheme();
   const user = useCurrentUser();
+  const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
+
+  async function signOut() {
+    setMenuOpen(false);
+    await endSession();
+    navigate("/login", { replace: true });
+  }
 
   useEffect(() => {
     // One-minute tick is enough for a date/time label with no seconds shown.
@@ -47,9 +74,34 @@ export default function AppTopbar() {
         >
           {theme === "dark" ? "☀" : "☾"}
         </button>
-        <span className="avatar" aria-hidden="true">
-          {user ? initials(user.name) : ""}
-        </span>
+        <div className="account-menu" ref={menuRef}>
+          <button
+            type="button"
+            className="avatar avatar-button"
+            aria-label="Account menu"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {user ? initials(user.name) : ""}
+          </button>
+          {menuOpen && (
+            <div className="account-menu-panel" role="menu">
+              {user && (
+                <div className="account-identity">
+                  <strong>{user.name}</strong>
+                  <span className="muted small">{user.email}</span>
+                </div>
+              )}
+              <Link to="/settings" role="menuitem" onClick={() => setMenuOpen(false)}>
+                Settings
+              </Link>
+              <button type="button" role="menuitem" onClick={signOut}>
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

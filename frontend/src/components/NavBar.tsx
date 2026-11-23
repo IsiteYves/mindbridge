@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router";
 
-import { clearToken } from "@/lib/api";
+import { endSession } from "@/lib/session";
 
 // "Home" is deliberately not listed yet: for a signed-in user "/" redirects
 // straight to "/assignments" today (see App.tsx), so a separate Home entry
@@ -19,8 +19,8 @@ export default function NavBar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  function signOut() {
-    clearToken();
+  async function signOut() {
+    await endSession();
     navigate("/login", { replace: true });
   }
 
@@ -56,13 +56,21 @@ export default function NavBar() {
       </div>
 
       <div className="sidebar-footer">
-        <Link to="/planning-guide" className="link-button">
+        <Link
+          to="/planning-guide"
+          className={`nav-link${isActive("/planning-guide") ? " active" : ""}`}
+          aria-current={isActive("/planning-guide") ? "page" : undefined}
+        >
           Planning guide
         </Link>
-        <Link to="/settings" className="link-button">
+        <Link
+          to="/settings"
+          className={`nav-link${isActive("/settings") ? " active" : ""}`}
+          aria-current={isActive("/settings") ? "page" : undefined}
+        >
           Settings
         </Link>
-        <button type="button" className="link-button" onClick={signOut}>
+        <button type="button" className="nav-link" onClick={signOut}>
           Sign out
         </button>
       </div>

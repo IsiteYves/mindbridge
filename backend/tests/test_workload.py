@@ -172,3 +172,21 @@ def test_workload_is_private_to_its_owner(client, make_user_headers):
     make_assignment(client, owner, 5)
 
     assert client.get(WORKLOAD, headers=intruder).get_json()["days"] == []
+
+
+def test_the_kinds_filter_keeps_only_the_chosen_types_with_correct_counts(client, make_user_headers):
+    headers = make_user_headers("student1")
+    assignment_id = make_assignment(client, headers, 10)
+    add_milestone(client, headers, assignment_id, 5)
+
+    both = client.get(WORKLOAD, headers=headers).get_json()["days"]
+    assert sum(day["count"] for day in both) == 2
+
+    only_deadlines = client.get(WORKLOAD, query_string={"kinds": "deadline"}, headers=headers).get_json()["days"]
+    assert sum(day["count"] for day in only_deadlines) == 1
+    assert all(item["kind"] == "deadline" for day in only_deadlines for item in day["items"])
+
+
+def test_an_unknown_kind_is_rejected(client, make_user_headers):
+    headers = make_user_headers("student1")
+    assert client.get(WORKLOAD, query_string={"kinds": "reminder"}, headers=headers).status_code == 400

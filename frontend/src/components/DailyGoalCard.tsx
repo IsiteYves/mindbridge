@@ -7,6 +7,13 @@ function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] ?? fullName;
 }
 
+function timeOfDayGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 export default function DailyGoalCard() {
   const [goal, setGoal] = useState<DailyGoal | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +51,10 @@ export default function DailyGoalCard() {
   return (
     <article className="card daily-goal-card">
       <p className="mono-label">Today</p>
-      <h2>Good morning{user ? `, ${firstName(user.name)}` : ""}.</h2>
+      <h2>
+        {timeOfDayGreeting()}
+        {user ? `, ${firstName(user.name)}` : ""}.
+      </h2>
       <p className="muted">A little progress, daily.</p>
       {error && <p className="error">{error}</p>}
 

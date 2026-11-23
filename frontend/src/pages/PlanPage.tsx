@@ -18,9 +18,22 @@ async function loadPlan(): Promise<PlanData> {
   return { schedule, reminders };
 }
 
+type PlanFilter = "reminders" | "milestones" | "deadlines";
+
+const FILTER_LABELS: Record<PlanFilter, string> = {
+  reminders: "Reminders",
+  milestones: "Milestones",
+  deadlines: "Deadlines",
+};
+
 export default function PlanPage() {
   const [plan, setPlan] = useState<PlanData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [shown, setShown] = useState<Record<PlanFilter, boolean>>({
+    reminders: true,
+    milestones: true,
+    deadlines: true,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -54,17 +67,37 @@ export default function PlanPage() {
   }
 
   const { schedule, reminders } = plan;
+  const visibleReminders = reminders.filter((reminder) =>
+    reminder.kind === "deadline" ? shown.deadlines : shown.milestones,
+  );
+  const visibleMilestones = shown.milestones ? schedule.milestones : [];
   const adjusted = schedule.slack_fraction > 0;
   const slackPercent = Math.round(schedule.slack_fraction * 100);
 
   return (
     <>
       <section className="card">
+        <div className="kind-filter-row" role="group" aria-label="Show in the plan">
+          {(Object.keys(FILTER_LABELS) as PlanFilter[]).map((filter) => (
+            <label key={filter} className="kind-filter-option">
+              <input
+                type="checkbox"
+                checked={shown[filter]}
+                onChange={() => setShown((current) => ({ ...current, [filter]: !current[filter] }))}
+              />{" "}
+              {FILTER_LABELS[filter]}
+            </label>
+          ))}
+        </div>
+      </section>
+
+      {shown.reminders && (
+      <section className="card">
         <h1>Due in the next 3 days</h1>
-        {reminders.length === 0 && <p className="muted">Nothing is due in the next 3 days.</p>}
-        {reminders.length > 0 && (
+        {visibleReminders.length === 0 && <p className="muted">Nothing is due in the next 3 days.</p>}
+        {visibleReminders.length > 0 && (
           <ul className="list">
-            {reminders.map((reminder) => (
+            {visibleReminders.map((reminder) => (
               <li key={`${reminder.kind}-${reminder.id}`}>
                 <strong>{reminder.kind === "deadline" ? "Deadline" : "Milestone"}:</strong> {reminder.title}{" "}
                 <span className="muted">
@@ -75,7 +108,9 @@ export default function PlanPage() {
           </ul>
         )}
       </section>
+      )}
 
+      {shown.milestones && (
       <section className="card">
         <h1>Upcoming milestones</h1>
         {schedule.stress_average === null ? (
@@ -94,10 +129,10 @@ export default function PlanPage() {
           </p>
         )}
 
-        {schedule.milestones.length === 0 && <p className="muted">No open milestones in the next 14 days.</p>}
-        {schedule.milestones.length > 0 && (
+        {visibleMilestones.length === 0 && <p className="muted">No open milestones in the next 14 days.</p>}
+        {visibleMilestones.length > 0 && (
           <ul className="list">
-            {schedule.milestones.map((milestone) => (
+            {visibleMilestones.map((milestone) => (
               <li key={milestone.id}>
                 <strong>{milestone.title}</strong>{" "}
                 <span className="muted">
@@ -112,6 +147,7 @@ export default function PlanPage() {
           </ul>
         )}
       </section>
+      )}
     </>
   );
 }

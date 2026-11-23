@@ -27,7 +27,10 @@ from app.services.agent.state import Finding, PlanReviewState
 
 
 def _balance_node(state: PlanReviewState) -> dict:
-    return {"balance_findings": deterministic.check_balance(state["rubric"], state["milestones"])}
+    return {
+        "balance_findings": deterministic.check_balance(state["rubric"], state["milestones"])
+        + deterministic.check_crowding(state["milestones"], state["deadline"], state["now"]),
+    }
 
 
 def _slip_node(state: PlanReviewState) -> dict:
@@ -56,7 +59,7 @@ def _summarize(state: PlanReviewState, findings: list[Finding]) -> str:
     if not findings:
         if state.get("llm_error"):
             return "Rule-based checks found nothing to flag. AI-assisted review could not run this time."
-        return "Your plan looks reasonably balanced against the rubric, and nothing is overdue."
+        return "Milestones cover the rubric and finish before the deadline."
 
     warnings = sum(1 for f in findings if f["severity"] == "warning")
     info = len(findings) - warnings

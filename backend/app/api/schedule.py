@@ -143,6 +143,10 @@ def get_workload():
         except ValueError:
             return jsonify(error="assignment_id must be an integer"), 400
 
+    kinds = set(request.args.get("kinds", "milestone,deadline").split(","))
+    if not kinds or not kinds <= {"milestone", "deadline"}:
+        return jsonify(error="kinds must be milestone, deadline, or both"), 400
+
     counts: dict[dt.date, int] = {}
     items: dict[dt.date, list] = {}
 
@@ -161,7 +165,7 @@ def get_workload():
     )
     if assignment_filter is not None:
         milestone_query = milestone_query.filter(Assignment.id == assignment_filter)
-    for milestone in milestone_query.all():
+    for milestone in milestone_query.all() if "milestone" in kinds else []:
         add(
             milestone.target_date.date(),
             {
@@ -178,7 +182,7 @@ def get_workload():
     )
     if assignment_filter is not None:
         assignment_query = assignment_query.filter(Assignment.id == assignment_filter)
-    for assignment in assignment_query.all():
+    for assignment in assignment_query.all() if "deadline" in kinds else []:
         add(
             assignment.deadline.date(),
             {
