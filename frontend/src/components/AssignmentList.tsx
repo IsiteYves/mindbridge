@@ -1,8 +1,49 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 
-import type { Assignment } from "@/lib/api";
+import { type Assignment, apiRequest, errorMessage, type Status } from "@/lib/api";
 import { formatDate } from "@/lib/dates";
+import { toast } from "@/lib/toast";
+
+const STATUS_OPTIONS: { value: Status; label: string }[] = [
+  { value: "not_started", label: "Not started" },
+  { value: "in_progress", label: "In progress" },
+  { value: "done", label: "Done" },
+];
+
+export function StatusSelect({ assignment, onChanged }: { assignment: Assignment; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false);
+
+  async function change(next: Status) {
+    setBusy(true);
+    try {
+      await apiRequest(`/assignments/${assignment.id}`, { method: "PATCH", body: { status: next } });
+      toast.success("Status updated.");
+      onChanged();
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <select
+      className="status-select"
+      aria-label={`Status of ${assignment.title}`}
+      value={assignment.status}
+      disabled={busy}
+      onChange={(event) => change(event.target.value as Status)}
+    >
+      {STATUS_OPTIONS.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 export function AssignmentList({
   items,

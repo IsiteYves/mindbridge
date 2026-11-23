@@ -186,12 +186,42 @@ export default function AssignmentView({ id }: { id: string }) {
 
       {pending && (
       <section className="card">
-        <h2>Rubric criteria</h2>
-        <p className="muted">
-          Each criterion becomes one milestone. Set a weight — the share of the rubric it covers — and milestones
-          get proportional time instead of an even split; leave weight blank for an even split. Edit, add or remove
-          criteria before generating.
-        </p>
+        <div className="card-title">
+          <h2>Your plan</h2>
+          <span className="pill">{milestones.length} milestones</span>
+        </div>
+        <p className="muted">Reordering never changes a target date. The timeline reads by date.</p>
+        {milestones.length === 0 && <p className="muted">No milestones yet. Generate from the rubric, or add one below.</p>}
+        <ul className="list milestone-list">
+          {milestones.map((milestone, index) => (
+            <MilestoneRow
+              key={milestone.id}
+              milestone={milestone}
+              isFirst={index === 0}
+              isLast={index === milestones.length - 1}
+              deadline={assignment?.deadline ?? null}
+              onMoveUp={() => reorder(index, index - 1)}
+              onMoveDown={() => reorder(index, index + 1)}
+              onSaved={(saved) => {
+                setMilestones((current) => current.map((m) => (m.id === saved.id ? saved : m)));
+                refreshAssignment();
+              }}
+              onDeleted={(removedId) =>
+                setMilestones((current) => current.filter((m) => m.id !== removedId))
+              }
+              onError={toast.error}
+            />
+          ))}
+        </ul>
+        <AddMilestoneForm
+          assignmentId={id}
+          deadline={assignment?.deadline ?? null}
+          onAdded={(created) => setMilestones((current) => [...current, created])}
+          onError={toast.error}
+        />
+        <details className="rubric-editor">
+          <summary>Rubric and generation</summary>
+          <p className="muted small">Each criterion becomes a milestone. Its weight sets its time share; blank splits evenly.</p>
         <form className="form" onSubmit={generate}>
           {criteria.map((draft, index) => (
             <div className="form-row" key={index}>
@@ -249,47 +279,7 @@ export default function AssignmentView({ id }: { id: string }) {
             </p>
           )}
         </form>
-      </section>
-      )}
-
-      {pending && (
-      <section className="card">
-        <div className="card-title">
-          <h2>Edit your plan</h2>
-          <span className="pill">{milestones.length} milestones</span>
-        </div>
-        <p className="muted">
-          This list is your own reading order — reordering it never changes a milestone's target date. The timeline
-          above always reads by date.
-        </p>
-        {milestones.length === 0 && <p className="muted">No milestones yet. Generate from the rubric, or add one below.</p>}
-        <ul className="list milestone-list">
-          {milestones.map((milestone, index) => (
-            <MilestoneRow
-              key={milestone.id}
-              milestone={milestone}
-              isFirst={index === 0}
-              isLast={index === milestones.length - 1}
-              deadline={assignment?.deadline ?? null}
-              onMoveUp={() => reorder(index, index - 1)}
-              onMoveDown={() => reorder(index, index + 1)}
-              onSaved={(saved) => {
-                setMilestones((current) => current.map((m) => (m.id === saved.id ? saved : m)));
-                refreshAssignment();
-              }}
-              onDeleted={(removedId) =>
-                setMilestones((current) => current.filter((m) => m.id !== removedId))
-              }
-              onError={toast.error}
-            />
-          ))}
-        </ul>
-        <AddMilestoneForm
-          assignmentId={id}
-          deadline={assignment?.deadline ?? null}
-          onAdded={(created) => setMilestones((current) => [...current, created])}
-          onError={toast.error}
-        />
+        </details>
       </section>
       )}
     </>

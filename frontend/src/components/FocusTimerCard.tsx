@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 
-import { FocusHistory } from "@/components/FocusHistory";
 import { type FocusSession, apiRequest, errorMessage } from "@/lib/api";
 import { toast } from "@/lib/toast";
 
@@ -36,7 +36,6 @@ export default function FocusTimerCard() {
   const [todayCount, setTodayCount] = useState<number | null>(null);
   const [result, setResult] = useState<FocusSession | null>(null);
   const [busy, setBusy] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
 
   const remaining = session ? Math.max(0, Math.ceil((endsAt - now) / 1000)) : minutes * 60;
 
@@ -139,16 +138,15 @@ export default function FocusTimerCard() {
             Start
           </button>
         )}
-        <button type="button" className="button secondary compact" onClick={() => setHistoryOpen((open) => !open)}>
-          {historyOpen ? "Hide history" : "History"}
-        </button>
+        <Link to="/focus/history" className="button secondary compact focus-history-link">
+          History
+        </Link>
       </div>
       {todayCount !== null && (
         <p className="muted small">
           {todayCount} focus session{todayCount === 1 ? "" : "s"} ended today
         </p>
       )}
-      {historyOpen && <FocusHistory />}
     </article>
   );
 }

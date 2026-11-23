@@ -1,21 +1,16 @@
 import type { Milestone, Status } from "@/lib/api";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { daysLeftLabel, daysRemaining, encouragement } from "@/lib/progress";
 
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
-function shortDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short" }).format(date).toUpperCase();
+function placement(fraction: number): string {
+  return `${Math.min(94, Math.max(6, fraction * 100))}%`;
 }
 
-function daysLeftLabel(deadline: Date, now: Date): string {
-  const days = Math.ceil((deadline.getTime() - now.getTime()) / DAY_MS);
-  if (days < 0) return "Overdue";
-  if (days === 0) return "Due today";
-  if (days === 1) return "1 day left";
-  return `${days} days left`;
+function shortDate(date: Date): string {
+  return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short" }).format(date).toUpperCase();
 }
 
 function statusGlyph(status: Status): string {
@@ -32,6 +27,9 @@ export default function MilestoneRail({ milestones, deadline }: { milestones: Mi
   const deadlineDate = new Date(deadline);
   const now = new Date();
   const ordered = [...milestones].sort((a, b) => a.target_date.localeCompare(b.target_date));
+  const doneCount = milestones.filter((m) => m.status === "done").length;
+  const daysLeft = daysRemaining(deadlineDate, now);
+  const cheer = encouragement(doneCount, milestones.length, daysLeft);
 
   const earliestMilestone = ordered[0] ? new Date(ordered[0].target_date) : null;
   const start = earliestMilestone && earliestMilestone < now ? earliestMilestone : now;
@@ -43,7 +41,6 @@ export default function MilestoneRail({ milestones, deadline }: { milestones: Mi
 
   const fraction = (iso: string) => clamp01((new Date(iso).getTime() - start.getTime()) / span);
   const todayFraction = clamp01((now.getTime() - start.getTime()) / span);
-  const doneCount = milestones.filter((m) => m.status === "done").length;
 
   return (
     <div className="milestone-rail">
@@ -53,13 +50,16 @@ export default function MilestoneRail({ milestones, deadline }: { milestones: Mi
         </span>
         <span className="days-left-badge">{daysLeftLabel(deadlineDate, now)}</span>
       </div>
+      <p className="rail-cheer">
+        <span aria-hidden="true">{cheer.emoji}</span> {cheer.text}
+      </p>
 
       <div className="rail-track" role="img" aria-label={`Timeline from ${shortDate(start)} to ${shortDate(deadlineDate)}`}>
         <div className="rail-line" />
-        <div className="rail-today-marker" style={{ left: `${todayFraction * 100}%` }}>
+        <div className="rail-today-marker" style={{ left: placement(todayFraction) }}>
           <span className="mono-label">TODAY</span>
         </div>
-        <div className="rail-due-marker" style={{ left: "100%" }}>
+        <div className="rail-due-marker">
           <span className="mono-label">
             DUE · {shortDate(deadlineDate)} {deadlineDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
           </span>
@@ -69,7 +69,7 @@ export default function MilestoneRail({ milestones, deadline }: { milestones: Mi
           <div
             key={milestone.id}
             className={`rail-node rail-node-${milestone.status}`}
-            style={{ left: `${fraction(milestone.target_date) * 100}%` }}
+            style={{ left: placement(fraction(milestone.target_date)) }}
           >
             <span className="rail-node-dot" aria-hidden="true">
               {statusGlyph(milestone.status)}

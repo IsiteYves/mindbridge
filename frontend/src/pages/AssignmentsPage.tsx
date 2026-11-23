@@ -1,12 +1,13 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router";
 
-import { AssignmentList, Pager } from "@/components/AssignmentList";
+import { AssignmentList, Pager, StatusSelect } from "@/components/AssignmentList";
 import DailyGoalCard from "@/components/DailyGoalCard";
 import FocusTimerCard from "@/components/FocusTimerCard";
 import WorkloadHeatmap from "@/components/WorkloadHeatmap";
 import { type Assignment, apiRequest, errorMessage, type Page } from "@/lib/api";
 import { fromLocalInput } from "@/lib/dates";
+import { encouragement } from "@/lib/progress";
 import { toast } from "@/lib/toast";
 
 const PAGE_SIZE = 15;
@@ -100,7 +101,10 @@ export default function AssignmentsPage() {
       <header className="page-header">
         <div className="stack">
           <h1>My assignments</h1>
-          <p className="muted">Each rubric criterion becomes a milestone before the deadline.</p>
+          <p className="muted">
+            <span aria-hidden="true">{encouragement(counts.closed, counts.all, null).emoji}</span>{" "}
+            {encouragement(counts.closed, counts.all, null).text}
+          </p>
         </div>
         <Link to="/import" className="button">
           Import from Canvas
@@ -172,9 +176,7 @@ export default function AssignmentsPage() {
           <>
             <AssignmentList
               items={page.items}
-              badge={(a) => (
-                <span className={`status-text status-${a.status}`}>{a.status.replace("_", " ")}</span>
-              )}
+              badge={(a) => <StatusSelect assignment={a} onChanged={() => setRefresh((value) => value + 1)} />}
             />
             <Pager offset={page.offset} limit={page.limit} total={page.total} onChange={setOffset} />
           </>

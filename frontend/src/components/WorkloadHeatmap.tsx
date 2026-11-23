@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import { apiRequest, errorMessage } from "@/lib/api";
+import { useCloseOnOutsideClick } from "@/lib/useCloseOnOutsideClick";
 
 type WorkloadKind = "milestone" | "deadline";
 type WorkloadItem = { kind: WorkloadKind; id: number; assignment_id: number; title: string; course: string };
@@ -50,6 +51,8 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [kinds, setKinds] = useState<Record<WorkloadKind, boolean>>({ milestone: true, deadline: true });
+  const typesRef = useRef<HTMLDetailsElement>(null);
+  useCloseOnOutsideClick(typesRef);
 
   const kindsParam = (["milestone", "deadline"] as const).filter((kind) => kinds[kind]).join(",");
   const isCurrentMonth = year === today.getUTCFullYear() && month === today.getUTCMonth();
@@ -131,7 +134,7 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
         <button type="button" className="button secondary compact" onClick={goToToday} disabled={isCurrentMonth}>
           Today
         </button>
-        <details className="kind-filter">
+        <details className="kind-filter" ref={typesRef}>
           <summary className="button secondary compact">Types</summary>
           <div className="kind-filter-menu">
             {(["milestone", "deadline"] as const).map((kind) => (
@@ -173,13 +176,13 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
                     selected === date ? " selected" : ""
                   }`}
                   disabled={count === 0}
-                  aria-label={`${date}, ${count} item${count === 1 ? "" : "s"} due`}
+                  aria-label={`${date}, ${count} Todo ${count === 1 ? "Item" : "Items"}`}
                   onClick={() => setSelected(date === selected ? null : date)}
                 >
                   <span className="heatmap-date">{Number(date.slice(8, 10))}</span>
                   {count > 0 && (
                     <span className="heatmap-count">
-                      {count} {count === 1 ? "item" : "items"}
+                      {count} Todo {count === 1 ? "Item" : "Items"}
                     </span>
                   )}
                 </button>
@@ -192,7 +195,7 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
       {selectedDay && (
         <div className="heatmap-detail">
           <h4 className="mono-label">
-            {selectedDay.date} · {selectedDay.count} item{selectedDay.count === 1 ? "" : "s"}
+            {selectedDay.date} · {selectedDay.count} Todo {selectedDay.count === 1 ? "Item" : "Items"}
           </h4>
           <ul className="list">
             {selectedDay.items.map((item) => (

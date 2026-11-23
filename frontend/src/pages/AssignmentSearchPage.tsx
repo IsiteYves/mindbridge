@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
-import { AssignmentList, Pager } from "@/components/AssignmentList";
+import { AssignmentList, Pager, StatusSelect } from "@/components/AssignmentList";
 import { type Assignment, apiRequest, errorMessage, type Page } from "@/lib/api";
 import { stateLabel } from "@/lib/assignments";
 import { toast } from "@/lib/toast";
@@ -18,6 +18,7 @@ export default function AssignmentSearchPage() {
   const [newestFirst, setNewestFirst] = useState(false);
   const [offset, setOffset] = useState(0);
   const [page, setPage] = useState<Page<Assignment> | null>(null);
+  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,7 +43,7 @@ export default function AssignmentSearchPage() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [query, state, from, to, newestFirst, offset]);
+  }, [query, state, from, to, newestFirst, offset, refresh]);
 
   function changeFilter<T>(setter: (value: T) => void, value: T) {
     setter(value);
@@ -105,7 +106,15 @@ export default function AssignmentSearchPage() {
       {page && page.items.length === 0 && <p className="empty-state">No assignments match these filters.</p>}
       {page && page.items.length > 0 && (
         <>
-          <AssignmentList items={page.items} badge={(a) => <span className="pill">{stateLabel(a)}</span>} />
+          <AssignmentList
+            items={page.items}
+            badge={(a) => (
+              <>
+                <span className="pill">{stateLabel(a)}</span>
+                <StatusSelect assignment={a} onChanged={() => setRefresh((value) => value + 1)} />
+              </>
+            )}
+          />
           <Pager offset={page.offset} limit={page.limit} total={page.total} onChange={setOffset} />
         </>
       )}

@@ -11,6 +11,7 @@ import AssignmentSearchPage from "@/pages/AssignmentSearchPage";
 import AssignmentsPage from "@/pages/AssignmentsPage";
 import CheckInPage from "@/pages/CheckInPage";
 import HomePage from "@/pages/HomePage";
+import FocusHistoryPage from "@/pages/FocusHistoryPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ImportPage from "@/pages/ImportPage";
 import LoginPage from "@/pages/LoginPage";
@@ -57,6 +58,7 @@ export default function App() {
       <Route path="/import" element={guard(<ImportPage />)} />
       <Route path="/assignments" element={guard(<AssignmentsPage />)} />
       <Route path="/assignments/search" element={guard(<AssignmentSearchPage />)} />
+      <Route path="/focus/history" element={guard(<FocusHistoryPage />)} />
       <Route path="/assignments/:id" element={guard(<AssignmentDetailPage />)} />
       <Route path="/settings" element={guard(<SettingsPage />)} />
       <Route path="/planning-guide" element={guard(<PlanningGuidePage />)} />

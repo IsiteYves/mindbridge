@@ -1690,3 +1690,84 @@ h2 {
   flex-wrap: wrap;
   gap: 16px;
 }
+
+.milestone-rail {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rail-cheer {
+  margin: 4px 0 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rail-due-marker {
+  left: auto;
+  right: 0;
+  transform: none;
+  text-align: right;
+}
+
+.rail-node-label {
+  max-width: 140px;
+  overflow-wrap: anywhere;
+}
+
+.rubric-editor {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.rubric-editor > summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--brand);
+}
+
+@media (min-width: 1100px) {
+  .milestone-row .milestone-form {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.6fr) minmax(170px, 1fr) 96px 130px auto auto;
+    align-items: end;
+    gap: 10px;
+    flex-wrap: nowrap;
+  }
+}
+
+.focus-timer-card select {
+  appearance: none;
+  padding: 7px 34px 7px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%235a6e72' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 12px center;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.focus-timer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.focus-history-link {
+  margin-left: auto;
+}
+
+.status-select {
+  appearance: none;
+  padding: 6px 30px 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%235a6e72' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 10px center;
+  color: var(--text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
