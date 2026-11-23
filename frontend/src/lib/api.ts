@@ -108,6 +108,8 @@ export type NotificationItem = {
   offset_days: number | null;
   fired_for_date: string;
   sent_at: string | null;
+  title: string | null;
+  course: string | null;
 };
 
 export type AgentFinding = { severity: string; milestone_id: number | null; message: string };

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
+import { formatDate } from "@/lib/dates";
 import { toast } from "@/lib/toast";
 import {
   type NotificationItem,
@@ -42,17 +44,31 @@ function InboxGroup({
     <div className="inbox-group">
       <div className="card-title">
         <h4 className="mono-label">{title}</h4>
-        <button type="button" className="button secondary compact" onClick={() => onDismissAll(kinds)}>
-          Dismiss all
-        </button>
+        {items.length > 1 && (
+          <button type="button" className="button secondary compact" onClick={() => onDismissAll(kinds)}>
+            Dismiss all
+          </button>
+        )}
       </div>
       <ul className="list">
         {items.map((item) => (
           <li key={item.id}>
-            <span>{KIND_LABEL[item.kind] ?? item.kind}</span>
-            <button type="button" className="button secondary compact" onClick={() => onDismiss(item.id)}>
-              Dismiss
-            </button>
+            <div>
+              <Link to={`/assignments/${item.assignment_id}`} className="list-title">
+                {KIND_LABEL[item.kind] ?? item.kind}: {item.title ?? "Assignment"}
+              </Link>
+              <p className="muted small">
+                {item.course ?? ""} · {formatDate(item.fired_for_date)}
+              </p>
+            </div>
+            <div className="assignment-actions">
+              <Link to={`/assignments/${item.assignment_id}`} className="button secondary compact">
+                View
+              </Link>
+              <button type="button" className="button secondary compact" onClick={() => onDismiss(item.id)}>
+                Dismiss
+              </button>
+            </div>
           </li>
         ))}
       </ul>
