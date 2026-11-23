@@ -202,6 +202,8 @@ def test_dismiss_all_clears_only_the_chosen_kinds(app, client, make_user_headers
     assert dismissed.get_json()["dismissed"] == 2
     remaining = client.get("/api/v1/notifications", headers=headers).get_json()
     assert [item["kind"] for item in remaining] == ["deadline"]
+    assert remaining[0]["title"] == "Report"
+    assert remaining[0]["course"] == "CS"
 
 
 def test_dismiss_all_rejects_unknown_kinds(client, make_user_headers):

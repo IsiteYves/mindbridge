@@ -10,7 +10,7 @@ from flask import Blueprint, abort, g, jsonify
 from app.api.auth import token_required
 from app.api.common import json_body
 from app.extensions import db
-from app.models import Reminder, ReminderPreference
+from app.models import Assignment, Milestone, Reminder, ReminderPreference
 
 notifications_bp = Blueprint("notifications", __name__, url_prefix="/notifications")
 
@@ -24,6 +24,8 @@ def preference_json(preference):
 
 
 def reminder_json(reminder):
+    assignment = db.session.get(Assignment, reminder.assignment_id)
+    milestone = db.session.get(Milestone, reminder.milestone_id) if reminder.milestone_id else None
     return {
         "id": reminder.id,
         "assignment_id": reminder.assignment_id,
@@ -32,6 +34,8 @@ def reminder_json(reminder):
         "offset_days": reminder.offset_days,
         "fired_for_date": reminder.fired_for_date.isoformat(),
         "sent_at": reminder.sent_at.isoformat() if reminder.sent_at else None,
+        "title": (milestone.title if milestone else assignment.title) if assignment else None,
+        "course": assignment.course if assignment else None,
     }
 
 
