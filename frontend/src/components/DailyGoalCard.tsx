@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
 import { type DailyGoal, apiRequest, errorMessage } from "@/lib/api";
+import { onDataChanged } from "@/lib/dataEvents";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 
 function firstName(fullName: string): string {
@@ -24,16 +25,21 @@ export default function DailyGoalCard() {
 
   useEffect(() => {
     let cancelled = false;
-    apiRequest<DailyGoal>("/daily-goal/today").then(
-      (loaded) => {
-        if (!cancelled) setGoal(loaded);
-      },
-      (err: unknown) => {
-        if (!cancelled) setError(errorMessage(err));
-      },
-    );
+    function load() {
+      apiRequest<DailyGoal>("/daily-goal/today").then(
+        (loaded) => {
+          if (!cancelled) setGoal(loaded);
+        },
+        (err: unknown) => {
+          if (!cancelled) setError(errorMessage(err));
+        },
+      );
+    }
+    load();
+    const stop = onDataChanged(load);
     return () => {
       cancelled = true;
+      stop();
     };
   }, []);
 

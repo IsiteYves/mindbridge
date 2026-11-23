@@ -94,7 +94,13 @@ export default function PlanPage() {
       {shown.reminders && (
       <section className="card">
         <h1>Due in the next 3 days</h1>
-        {visibleReminders.length === 0 && <p className="muted">Nothing is due in the next 3 days.</p>}
+        {visibleReminders.length === 0 && (
+          <p className="muted">
+            {shown.reminders && shown.milestones && shown.deadlines
+              ? "Nothing is due in the next 3 days."
+              : "Nothing in filter results is due in the next 3 days."}
+          </p>
+        )}
         {visibleReminders.length > 0 && (
           <ul className="list">
             {visibleReminders.map((reminder) => (

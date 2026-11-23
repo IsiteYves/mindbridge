@@ -4,6 +4,7 @@ import DailyGoalCard from "@/components/DailyGoalCard";
 import { DeadlinesChart, FocusChart, StatusChart } from "@/components/DashboardCharts";
 import FocusTimerCard from "@/components/FocusTimerCard";
 import { type DashboardSummary, apiRequest, errorMessage } from "@/lib/api";
+import { onDataChanged } from "@/lib/dataEvents";
 import { toast } from "@/lib/toast";
 
 export default function DashboardPage() {
@@ -11,14 +12,19 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let cancelled = false;
-    apiRequest<DashboardSummary>("/dashboard/summary").then(
-      (loaded) => {
-        if (!cancelled) setSummary(loaded);
-      },
-      (err: unknown) => toast.error(errorMessage(err)),
-    );
+    function load() {
+      apiRequest<DashboardSummary>("/dashboard/summary").then(
+        (loaded) => {
+          if (!cancelled) setSummary(loaded);
+        },
+        (err: unknown) => toast.error(errorMessage(err)),
+      );
+    }
+    load();
+    const stop = onDataChanged(load);
     return () => {
       cancelled = true;
+      stop();
     };
   }, []);
 

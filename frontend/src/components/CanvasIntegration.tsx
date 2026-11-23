@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 
 import { type CanvasConnectionStatus, type CanvasSyncResult, apiRequest, errorMessage } from "@/lib/api";
 import { formatDate } from "@/lib/dates";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { toast } from "@/lib/toast";
 
 type Course = { id: string; name: string };
@@ -13,6 +14,7 @@ export default function CanvasIntegration() {
   const [usingNewToken, setUsingNewToken] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [confirmingDisconnect, setConfirmingDisconnect] = useState(false);
 
   useEffect(() => {
     apiRequest<CanvasConnectionStatus>("/canvas/status").then(setStatus, (err: unknown) =>
@@ -129,9 +131,20 @@ export default function CanvasIntegration() {
             <button type="button" className="button secondary" disabled={busy} onClick={changeCourses}>
               Change courses
             </button>
-            <button type="button" className="button secondary" disabled={busy} onClick={disconnect}>
+            <button type="button" className="button secondary" disabled={busy} onClick={() => setConfirmingDisconnect(true)}>
               Disconnect
             </button>
+            <ConfirmDialog
+              open={confirmingDisconnect}
+              title="Disconnect Canvas?"
+              message="Your stored token and course selection will be removed. Imported assignments are kept."
+              confirmLabel="Disconnect"
+              onConfirm={() => {
+                setConfirmingDisconnect(false);
+                disconnect();
+              }}
+              onCancel={() => setConfirmingDisconnect(false)}
+            />
           </div>
           <details className="token-change">
             <summary className="muted small">Use a different token</summary>
