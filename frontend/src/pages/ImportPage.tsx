@@ -31,7 +31,7 @@ export default function ImportPage() {
   async function importSelected() {
     setBusy(true);
     try {
-      const imported = await apiRequest<ImportResult>("/canvas/import", {
+      const imported = await apiRequest<ImportResult>("/canvas/connect", {
         method: "POST",
         body: { token, course_ids: selected },
       });
@@ -60,8 +60,7 @@ export default function ImportPage() {
       <section className="card">
         <h1>Import from Canvas</h1>
         <p className="muted">
-          Paste a Canvas personal access token (Account → Settings → New Access Token). It is sent once to load your
-          courses and is never saved.
+          Paste a Canvas personal access token (Account → Settings → New Access Token). The token is stored encrypted, so you can sync later without pasting it again. You can disconnect at any time in Settings → Integrations.
         </p>
         <form className="form" onSubmit={loadCourses}>
           <label className="field">
