@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { type ReactElement, useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router";
 
 import AppTopbar from "@/components/AppTopbar";
@@ -19,10 +19,24 @@ import RegisterPage from "@/pages/RegisterPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import SettingsPage from "@/pages/SettingsPage";
 import VerifyEmailPage from "@/pages/VerifyEmailPage";
+import { restoreSession } from "@/lib/api";
 import { useSignedIn } from "@/lib/useSignedIn";
 
 export default function App() {
   const signedIn = useSignedIn();
+  const [restored, setRestored] = useState(false);
+
+  useEffect(() => {
+    restoreSession().finally(() => setRestored(true));
+  }, []);
+
+  if (!restored) {
+    return (
+      <div className="page">
+        <p className="muted">Loading…</p>
+      </div>
+    );
+  }
 
   // Protected pages redirect to sign-in; sign-in pages redirect to the dashboard once signed in.
   const guard = (page: ReactElement) => (signedIn ? page : <Navigate to="/login" replace />);

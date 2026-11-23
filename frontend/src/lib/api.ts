@@ -1,6 +1,6 @@
 export const API_URL: string = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:5001/api/v1";
 
-const TOKEN_KEY = "mindbridge.token";
+let accessToken: string | null = null;
 
 // Fired whenever the signed-in state changes, so the UI can update without a reload.
 export const AUTH_EVENT = "mindbridge:auth-changed";
@@ -41,10 +41,20 @@ export type RubricCriterion = {
 
 export type ImportedAssignment = Assignment;
 
+export type ImportCourseStats = {
+  id: string;
+  name: string;
+  found: number;
+  created: number;
+  updated: number;
+  skipped: number;
+};
+
 export type ImportResult = {
   created: number;
   updated: number;
   skipped: { canvas_id: string; title: string; reason: string }[];
+  courses: ImportCourseStats[];
   assignments: ImportedAssignment[];
 };
 
@@ -115,45 +125,76 @@ export class ApiError extends Error {
   }
 }
 
+type RequestOptions = { method?: string; body?: unknown };
+
 export function getToken(): string | null {
-  try {
-    return sessionStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
+  return accessToken;
 }
 
 export function setToken(token: string): void {
-  try {
-    sessionStorage.setItem(TOKEN_KEY, token);
-  } catch {
-    // Storage is unavailable (private mode or blocked), so the user will be asked to sign in again.
-  }
+  accessToken = token;
+  notifyAuthChanged();
+}
+
+export function publishAuthChange(): void {
   notifyAuthChanged();
 }
 
 export function clearToken(): void {
-  try {
-    sessionStorage.removeItem(TOKEN_KEY);
-  } catch {
-    // Nothing to clear when storage is unavailable.
-  }
+  accessToken = null;
   notifyAuthChanged();
 }
 
-export async function apiRequest<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
+let refreshing: Promise<boolean> | null = null;
+
+function refreshAccessToken(): Promise<boolean> {
+  if (!refreshing) {
+    refreshing = (async () => {
+      try {
+        const response = await fetch(`${API_URL}/auth/refresh`, { method: "POST", credentials: "include" });
+        if (!response.ok) {
+          clearToken();
+          return false;
+        }
+        const data = (await response.json()) as { token: string };
+        setToken(data.token);
+        return true;
+      } catch {
+        return false;
+      }
+    })().finally(() => {
+      refreshing = null;
+    });
+  }
+  return refreshing;
+}
+
+export function restoreSession(): Promise<boolean> {
+  return refreshAccessToken();
+}
+
+function send(path: string, options: RequestOptions, token: string | null): Promise<Response> {
   const headers: Record<string, string> = {};
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
-  const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
+  return fetch(`${API_URL}${path}`, {
+    method: options.method ?? "GET",
+    headers,
+    credentials: "include",
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  });
+}
+
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const sentToken = getToken();
+  const usesSession = !path.startsWith("/auth/") && !path.startsWith("/canvas/");
 
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, {
-      method: options.method ?? "GET",
-      headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
-    });
+    response = await send(path, options, sentToken);
+    if (response.status === 401 && sentToken && usesSession && (await refreshAccessToken())) {
+      response = await send(path, options, getToken());
+    }
   } catch {
     throw new ApiError("Could not reach the MindBridge server", 0);
   }
@@ -161,10 +202,6 @@ export async function apiRequest<T>(path: string, options: { method?: string; bo
   if (response.status === 204) return undefined as T;
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    // A 401 from MindBridge's own endpoints means the session expired. Login failures and a
-    // rejected Canvas token also return 401, and must not sign the user out.
-    const isSessionCheck = !path.startsWith("/auth/") && !path.startsWith("/canvas/");
-    if (response.status === 401 && token && isSessionCheck) clearToken();
     const message = typeof data.error === "string" ? data.error : `Request failed (${response.status})`;
     throw new ApiError(message, response.status, data);
   }

@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router";
 
-import { clearToken } from "@/lib/api";
+import { apiRequest, clearToken } from "@/lib/api";
 
 // "Home" is deliberately not listed yet: for a signed-in user "/" redirects
 // straight to "/assignments" today (see App.tsx), so a separate Home entry
@@ -20,7 +20,9 @@ export default function NavBar() {
   const { pathname } = useLocation();
 
   function signOut() {
-    clearToken();
+    apiRequest("/auth/logout", { method: "POST" })
+      .catch(() => undefined)
+      .finally(() => clearToken());
     navigate("/login", { replace: true });
   }
 

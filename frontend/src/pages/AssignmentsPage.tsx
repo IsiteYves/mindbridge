@@ -167,7 +167,7 @@ export default function AssignmentsPage() {
           </div>
           <label className="field">
             Deadline (optional)
-            <input name="deadline" type="datetime-local" />
+            <input name="deadline" type="datetime-local" required />
           </label>
           <div>
             <button className="button" type="submit" disabled={busy}>

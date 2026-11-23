@@ -50,6 +50,12 @@ export default function ImportPage() {
     setSelected((current) => (current.includes(id) ? current.filter((c) => c !== id) : [...current, id]));
   }
 
+  const allSelected = courses !== null && courses.length > 0 && selected.length === courses.length;
+
+  function toggleAll() {
+    setSelected(allSelected || !courses ? [] : courses.map((course) => course.id));
+  }
+
   return (
     <>
       <section className="card">
@@ -80,6 +86,11 @@ export default function ImportPage() {
         <section className="card">
           <h2>Choose courses</h2>
           {courses.length === 0 && <p className="muted">No active courses were found for this account.</p>}
+          {courses.length > 0 && (
+            <button type="button" className="button secondary" onClick={toggleAll} disabled={busy}>
+              {allSelected ? "Clear selection" : "Select all"}
+            </button>
+          )}
           <ul className="list">
             {courses.map((course) => (
               <li key={course.id}>
@@ -104,8 +115,34 @@ export default function ImportPage() {
         <section className="card">
           <h2>Import finished</h2>
           <p>
-            {result.created} created, {result.updated} updated, {result.skipped.length} skipped (no due date).
+            {result.created} created, {result.updated} updated, {result.skipped.length} skipped.
           </p>
+          <ul className="list">
+            {result.courses.map((course) => (
+              <li key={course.id}>
+                <span>
+                  {course.name}
+                  <br />
+                  <span className="muted">
+                    {course.found === 0
+                      ? "Canvas returned no assignments for this course."
+                      : `${course.found} found · ${course.created} created · ${course.updated} updated · ${course.skipped} skipped`}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          {result.skipped.length > 0 && (
+            <ul className="list">
+              {result.skipped.map((item) => (
+                <li key={item.canvas_id}>
+                  <span>
+                    {item.title} <span className="muted">· {item.reason}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
           <ul className="list">
             {result.assignments.map((assignment) => (
               <li key={assignment.id}>

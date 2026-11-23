@@ -18,9 +18,11 @@ const OFFSET_LABEL: Record<ReminderOffset, string> = {
 
 export default function NotificationSettings() {
   const [preferences, setPreferences] = useState<ReminderPreference[] | null>(null);
+  const [draft, setDraft] = useState<Partial<Record<ReminderOffset, boolean>>>({});
   const [inbox, setInbox] = useState<NotificationItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [savingOffset, setSavingOffset] = useState<ReminderOffset | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,21 +44,27 @@ export default function NotificationSettings() {
     };
   }, []);
 
-  async function toggle(offset: ReminderOffset, enabled: boolean) {
-    setSavingOffset(offset);
+  const savedFor = (offset: ReminderOffset) =>
+    preferences?.find((preference) => preference.offset_days === offset)?.enabled ?? true;
+  const enabledFor = (offset: ReminderOffset) => draft[offset] ?? savedFor(offset);
+  const dirty = REMINDER_OFFSETS.some((offset) => draft[offset] !== undefined && draft[offset] !== savedFor(offset));
+
+  async function saveChanges() {
+    setSaving(true);
     setError(null);
+    setNotice(null);
     try {
-      const updated = await apiRequest<ReminderPreference>("/notifications/preferences", {
-        method: "PATCH",
-        body: { offset_days: offset, enabled },
+      const updated = await apiRequest<ReminderPreference[]>("/notifications/preferences", {
+        method: "PUT",
+        body: { preferences: REMINDER_OFFSETS.map((offset) => ({ offset_days: offset, enabled: enabledFor(offset) })) },
       });
-      setPreferences((current) =>
-        (current ?? []).map((preference) => (preference.offset_days === offset ? updated : preference)),
-      );
+      setPreferences(updated);
+      setDraft({});
+      setNotice("Reminder settings updated.");
     } catch (err) {
       setError(errorMessage(err));
     } finally {
-      setSavingOffset(null);
+      setSaving(false);
     }
   }
 
@@ -70,9 +78,6 @@ export default function NotificationSettings() {
     }
   }
 
-  const enabledFor = (offset: ReminderOffset) =>
-    preferences?.find((preference) => preference.offset_days === offset)?.enabled ?? true;
-
   return (
     <div className="notification-settings">
       {error && <p className="error">{error}</p>}
@@ -84,12 +89,18 @@ export default function NotificationSettings() {
             <input
               type="checkbox"
               checked={enabledFor(offset)}
-              disabled={preferences === null || savingOffset === offset}
-              onChange={(event) => toggle(offset, event.target.checked)}
+              disabled={preferences === null || saving}
+              onChange={(event) => setDraft((current) => ({ ...current, [offset]: event.target.checked }))}
             />
           </label>
         ))}
       </div>
+      <div className="form-row">
+        <button className="button" type="button" disabled={!dirty || saving} onClick={saveChanges}>
+          {saving ? "Updating…" : "Update"}
+        </button>
+      </div>
+      {notice && <p className="notice">{notice}</p>}
       <p className="muted small">
         You'll also always hear about anything overdue, once a day until it's done, and about anything new a Canvas
         import adds to your plan. Those two aren't optional.

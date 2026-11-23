@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import CanvasIntegration from "@/components/CanvasIntegration";
+import ProfileSettings from "@/components/ProfileSettings";
 import NotificationSettings from "@/components/NotificationSettings";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useTheme } from "@/lib/useTheme";
@@ -45,24 +46,7 @@ export default function SettingsPage() {
 
         {active === "profile" && (
           <div className="settings-panel" role="tabpanel">
-            {user ? (
-              <dl className="profile-fields">
-                <div>
-                  <dt className="muted">Name</dt>
-                  <dd>{user.name}</dd>
-                </div>
-                <div>
-                  <dt className="muted">Email</dt>
-                  <dd>{user.email}</dd>
-                </div>
-              </dl>
-            ) : (
-              <p className="muted">Loading your profile…</p>
-            )}
-            <p className="empty-state">
-              Editing your name and email isn't available yet. For now, contact your MindBridge administrator if
-              these need to change.
-            </p>
+            {user ? <ProfileSettings user={user} /> : <p className="muted">Loading your profile…</p>}
 
             <div className="appearance-row">
               <div>
