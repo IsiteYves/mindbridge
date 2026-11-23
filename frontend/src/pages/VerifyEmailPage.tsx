@@ -43,7 +43,7 @@ export default function VerifyEmailPage() {
         body: { email, code },
       });
       setToken(token);
-      navigate("/assignments", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(errorMessage(err));
       setBusy(false);

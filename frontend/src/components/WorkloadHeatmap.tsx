@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import { apiRequest, errorMessage } from "@/lib/api";
+import { onDataChanged } from "@/lib/dataEvents";
 import { useCloseOnOutsideClick } from "@/lib/useCloseOnOutsideClick";
 
 type WorkloadKind = "milestone" | "deadline";
@@ -50,6 +51,7 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
   const [kinds, setKinds] = useState<Record<WorkloadKind, boolean>>({ milestone: true, deadline: true });
   const typesRef = useRef<HTMLDetailsElement>(null);
   useCloseOnOutsideClick(typesRef);
@@ -85,7 +87,9 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
     return () => {
       cancelled = true;
     };
-  }, [monthStart, monthEnd, assignmentId, kindsParam]);
+  }, [monthStart, monthEnd, assignmentId, kindsParam, revision]);
+
+  useEffect(() => onDataChanged(() => setRevision((value) => value + 1)), []);
 
   function changeMonth(delta: number) {
     const next = new Date(Date.UTC(year, month + delta, 1));

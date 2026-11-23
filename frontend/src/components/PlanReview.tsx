@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { type AgentReview, type Milestone, apiRequest, errorMessage } from "@/lib/api";
+import { notifyDataChanged } from "@/lib/dataEvents";
 import { toast } from "@/lib/toast";
 import { formatDate } from "@/lib/dates";
 
@@ -16,6 +17,7 @@ export default function PlanReview({
   const [review, setReview] = useState<AgentReview | null>(null);
   const [busy, setBusy] = useState(false);
   const [applyingId, setApplyingId] = useState<number | null>(null);
+  const [applyingAll, setApplyingAll] = useState(false);
 
   async function runReview() {
     setBusy(true);
@@ -39,11 +41,38 @@ export default function PlanReview({
         body: { target_date: newDate },
       });
       onMilestoneUpdated(updated);
+      notifyDataChanged();
       toast.success("New target date applied.");
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
       setApplyingId(null);
+    }
+  }
+
+  const applySuggestion = review?.replan_suggestion ?? null;
+  const allApplied =
+    applySuggestion !== null &&
+    applySuggestion.milestone_ids.every(
+      (id, index) => milestones.find((m) => m.id === id)?.target_date === applySuggestion.new_target_dates[index],
+    );
+
+  async function applyAll(suggestion: { milestone_ids: number[]; new_target_dates: string[] }) {
+    setApplyingAll(true);
+    try {
+      for (let index = 0; index < suggestion.milestone_ids.length; index += 1) {
+        const updated = await apiRequest<Milestone>(`/milestones/${suggestion.milestone_ids[index]}`, {
+          method: "PATCH",
+          body: { target_date: suggestion.new_target_dates[index] },
+        });
+        onMilestoneUpdated(updated);
+      }
+      toast.success("Suggested dates applied.");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      notifyDataChanged();
+      setApplyingAll(false);
     }
   }
 
@@ -74,7 +103,17 @@ export default function PlanReview({
 
           {review.replan_suggestion && (
             <div className="replan-suggestion">
-              <p className="mono-label">Suggested new dates</p>
+              <div className="card-title">
+                <p className="mono-label">Suggested new dates</p>
+                <button
+                  type="button"
+                  className="button compact"
+                  disabled={applyingAll || allApplied}
+                  onClick={() => applyAll(review.replan_suggestion!)}
+                >
+                  {allApplied ? "Applied" : applyingAll ? "Applying…" : "Apply all"}
+                </button>
+              </div>
               <p className="muted small">Nothing here changes until you apply it.</p>
               <ul className="list">
                 {review.replan_suggestion.milestone_ids.map((milestoneId, index) => {

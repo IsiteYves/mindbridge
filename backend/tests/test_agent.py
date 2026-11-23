@@ -174,3 +174,15 @@ def test_the_ai_pass_never_sends_the_students_name_or_email(app, client, make_us
 
     assert "VeryDistinctiveName" not in sent_text["payload"]
     assert "@example.com" not in sent_text["payload"]
+
+
+def test_a_plan_where_every_milestone_is_done_says_so_without_findings(app, client, make_user_headers, monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    headers = make_user_headers("student1")
+    assignment_id = make_assignment(client, headers)
+    milestone_id = add_milestone(client, headers, assignment_id, title="Draft")
+    client.patch(f"/api/v1/milestones/{milestone_id}", json={"status": "done"}, headers=headers)
+
+    body = review(client, headers, assignment_id).get_json()
+    assert body["findings"] == []
+    assert body["summary"] == "All milestones are done. Nothing left to balance."

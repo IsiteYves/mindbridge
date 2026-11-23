@@ -25,7 +25,7 @@ function formatNow(date: Date): string {
   return `${parts.weekday?.toUpperCase()}, ${parts.day} ${parts.month?.toUpperCase()} ${parts.year} · ${parts.timeZoneName}`;
 }
 
-export default function AppTopbar() {
+export default function AppTopbar({ navOpen, onToggleNav }: { navOpen: boolean; onToggleNav: () => void }) {
   const [now, setNow] = useState(() => new Date());
   const [theme, toggleTheme] = useTheme();
   const user = useCurrentUser();
@@ -63,6 +63,17 @@ export default function AppTopbar() {
 
   return (
     <header className="app-topbar">
+      <button
+        type="button"
+        className={`burger${navOpen ? " open" : ""}`}
+        aria-label={navOpen ? "Close menu" : "Open menu"}
+        aria-expanded={navOpen}
+        onClick={onToggleNav}
+      >
+        <span />
+        <span />
+        <span />
+      </button>
       <span className="mono-label topbar-meta">{formatNow(now)}</span>
       <div className="topbar-controls">
         <button

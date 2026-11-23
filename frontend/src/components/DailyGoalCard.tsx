@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 
+import { Link } from "react-router";
+
 import { type DailyGoal, apiRequest, errorMessage } from "@/lib/api";
+import { onDataChanged } from "@/lib/dataEvents";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 
 function firstName(fullName: string): string {
@@ -22,24 +25,32 @@ export default function DailyGoalCard() {
 
   useEffect(() => {
     let cancelled = false;
-    apiRequest<DailyGoal>("/daily-goal/today").then(
-      (loaded) => {
-        if (!cancelled) setGoal(loaded);
-      },
-      (err: unknown) => {
-        if (!cancelled) setError(errorMessage(err));
-      },
-    );
+    function load() {
+      apiRequest<DailyGoal>("/daily-goal/today").then(
+        (loaded) => {
+          if (!cancelled) setGoal(loaded);
+        },
+        (err: unknown) => {
+          if (!cancelled) setError(errorMessage(err));
+        },
+      );
+    }
+    load();
+    const stop = onDataChanged(load);
     return () => {
       cancelled = true;
+      stop();
     };
   }, []);
 
-  async function markDone(index: number) {
+  async function toggleItem(index: number, done: boolean) {
     setSavingIndex(index);
     setError(null);
     try {
-      const updated = await apiRequest<DailyGoal>(`/daily-goal/today/items/${index}`, { method: "PATCH" });
+      const updated = await apiRequest<DailyGoal>(`/daily-goal/today/items/${index}`, {
+        method: "PATCH",
+        body: { done },
+      });
       setGoal(updated);
     } catch (err) {
       setError(errorMessage(err));
@@ -83,8 +94,8 @@ export default function DailyGoalCard() {
                   <input
                     type="checkbox"
                     checked={item.done}
-                    disabled={item.done || savingIndex === index}
-                    onChange={() => markDone(index)}
+                    disabled={savingIndex === index}
+                    onChange={() => toggleItem(index, !item.done)}
                   />
                   {item.label}
                 </label>
@@ -93,6 +104,11 @@ export default function DailyGoalCard() {
           </ul>
         </>
       )}
+      <div className="actions-row">
+        <Link to="/assignments" className="button secondary compact">
+          View my assignments
+        </Link>
+      </div>
     </article>
   );
 }

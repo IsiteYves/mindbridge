@@ -5,6 +5,7 @@ import datetime as dt
 from flask import Blueprint, g, jsonify
 
 from app.api.auth import token_required
+from app.api.common import json_body
 from app.extensions import db
 from app.models import Assignment, DailyGoal, Milestone
 from app.services import goals as goal_rules
@@ -35,7 +36,7 @@ def _candidate_tasks(user_id, limit):
     milestones = (
         db.session.query(Milestone)
         .join(Assignment)
-        .filter(Assignment.user_id == user_id, Milestone.status != "done")
+        .filter(Assignment.user_id == user_id, Milestone.status != "done", Assignment.status != "done")
         .order_by(Milestone.target_date)
         .limit(limit)
         .all()
@@ -56,6 +57,9 @@ def get_today():
         goal = DailyGoal(user_id=g.current_user.id, goal_date=_today(), target_count=DEFAULT_TARGET, items=items)
         db.session.add(goal)
         db.session.commit()
+    elif not goal.items:
+        goal.items = goal_rules.default_items(_candidate_tasks(g.current_user.id, DEFAULT_TARGET), target_count=DEFAULT_TARGET)
+        db.session.commit()
     return jsonify(goal_json(goal))
 
 
@@ -65,8 +69,11 @@ def mark_item_done(item_index):
     goal = _existing_goal()
     if goal is None:
         return jsonify(error="Today's goal has not been created yet. GET /daily-goal/today first."), 404
+    done = json_body().get("done", True)
+    if not isinstance(done, bool):
+        return jsonify(error="done must be true or false"), 400
     try:
-        goal.items = goal_rules.mark_done(goal.items, item_index)
+        goal.items = goal_rules.set_done(goal.items, item_index, done)
     except IndexError:
         return jsonify(error="item_index is out of range for today's goal."), 400
     db.session.commit()

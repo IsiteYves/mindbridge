@@ -29,8 +29,8 @@ export default function FocusHistoryPage() {
     <section className="card">
       <div className="card-title">
         <h1>Focus history</h1>
-        <Link to="/assignments" className="button secondary compact">
-          Back to my assignments
+        <Link to="/dashboard" className="button secondary compact">
+          Back to dashboard
         </Link>
       </div>
 

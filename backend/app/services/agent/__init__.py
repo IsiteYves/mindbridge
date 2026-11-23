@@ -55,6 +55,14 @@ def review_plan(assignment, milestones, now: dt.datetime | None = None) -> dict:
     Milestone rows). Returns a plain, JSON-ready dict matching the API
     contract documented in app/api/agent.py.
     """
+    if milestones and all(m.status == "done" for m in milestones):
+        return {
+            "generated_at": iso_utc(now or dt.datetime.now(dt.timezone.utc)),
+            "summary": "All milestones are done. Nothing left to balance.",
+            "findings": [],
+            "replan_suggestion": None,
+        }
+
     initial_state = PlanReviewState(
         assignment_title=assignment.title,
         course=assignment.course,

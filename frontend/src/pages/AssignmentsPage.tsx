@@ -2,8 +2,6 @@ import { FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router";
 
 import { AssignmentList, Pager, StatusSelect } from "@/components/AssignmentList";
-import DailyGoalCard from "@/components/DailyGoalCard";
-import FocusTimerCard from "@/components/FocusTimerCard";
 import WorkloadHeatmap from "@/components/WorkloadHeatmap";
 import { type Assignment, apiRequest, errorMessage, type Page } from "@/lib/api";
 import { fromLocalInput } from "@/lib/dates";
@@ -112,11 +110,6 @@ export default function AssignmentsPage() {
       </header>
 
       {error && <p className="error">{error}</p>}
-
-      <section className="dashboard-row" aria-label="Today">
-        <DailyGoalCard />
-        <FocusTimerCard />
-      </section>
 
       <section className="stats-grid" aria-label="Summary">
         <article className="stat">
