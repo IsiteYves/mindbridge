@@ -82,6 +82,7 @@ def test_email_is_normalized_to_lowercase(client):
         ("sturdy-pass1", "an uppercase letter"),
         ("STURDY-PASS1", "a lowercase letter"),
         ("Sturdypass1", "a special character"),
+        ("Sturdy-pass", "a number"),
     ],
 )
 def test_register_rejects_weak_passwords(client, password, fragment):

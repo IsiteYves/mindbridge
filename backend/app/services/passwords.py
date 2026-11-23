@@ -13,6 +13,8 @@ def password_problems(password):
         problems.append("an uppercase letter")
     if not re.search(r"[a-z]", password):
         problems.append("a lowercase letter")
+    if not re.search(r"[0-9]", password):
+        problems.append("a number")
     if not re.search(r"[^A-Za-z0-9]", password):
         problems.append("a special character")
     return problems
