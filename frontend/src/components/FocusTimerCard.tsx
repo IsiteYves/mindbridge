@@ -1,97 +1,137 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { FocusHistory } from "@/components/FocusHistory";
 import { type FocusSession, apiRequest, errorMessage } from "@/lib/api";
+import { toast } from "@/lib/toast";
 
-const PLANNED_MINUTES = 25;
+const PRESETS = [15, 25, 45, 60];
+const DEFAULT_MINUTES = 25;
 
 function formatRemaining(seconds: number): string {
-  const clamped = Math.max(0, seconds);
-  const minutes = Math.floor(clamped / 60);
-  const secs = clamped % 60;
+  const minutes = Math.floor(seconds / 60);
+  const secs = seconds % 60;
   return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function resultText(result: FocusSession): string {
+  const focused = result.actual_minutes ?? 0;
+  if (result.completed) return `Completed: ${focused} of ${result.planned_minutes} min.`;
+  return `Ended early: you focused ${focused} of ${result.planned_minutes} min.`;
+}
+
+async function fetchTodayCount(): Promise<number | null> {
+  try {
+    const sessions = await apiRequest<FocusSession[]>("/focus-sessions/today");
+    return sessions.filter((session) => session.ended_at !== null).length;
+  } catch {
+    return null;
+  }
 }
 
 export default function FocusTimerCard() {
   const [session, setSession] = useState<FocusSession | null>(null);
-  const [remaining, setRemaining] = useState(PLANNED_MINUTES * 60);
+  const [endsAt, setEndsAt] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  const [minutes, setMinutes] = useState(DEFAULT_MINUTES);
   const [todayCount, setTodayCount] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<FocusSession | null>(null);
   const [busy, setBusy] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const remaining = session ? Math.max(0, Math.ceil((endsAt - now) / 1000)) : minutes * 60;
 
   useEffect(() => {
     let cancelled = false;
-    apiRequest<FocusSession[]>("/focus-sessions/today").then(
-      (sessions) => {
-        if (!cancelled) setTodayCount(sessions.length);
+    apiRequest<{ session: FocusSession | null }>("/focus-sessions/active").then(
+      ({ session: active }) => {
+        if (cancelled || !active) return;
+        setSession(active);
+        setEndsAt(Date.now() + (active.remaining_seconds ?? 0) * 1000);
       },
-      () => {
-        if (!cancelled) setTodayCount(null);
-      },
+      () => undefined,
     );
+    fetchTodayCount().then((count) => {
+      if (!cancelled) setTodayCount(count);
+    });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  async function end(completed: boolean) {
-    if (!session || busy) return;
+  const endingRef = useRef(false);
+
+  const endSession = useCallback(async (id: number) => {
+    if (endingRef.current) return;
+    endingRef.current = true;
     setBusy(true);
     try {
-      await apiRequest<FocusSession>(`/focus-sessions/${session.id}/end`, {
-        method: "PATCH",
-        body: { completed },
-      });
-      setTodayCount((current) => (current ?? 0) + 1);
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
+      const ended = await apiRequest<FocusSession>(`/focus-sessions/${id}/end`, { method: "PATCH", body: {} });
+      setResult(ended);
       setSession(null);
+      setTodayCount(await fetchTodayCount());
+    } catch (err) {
+      toast.error(errorMessage(err));
+      setSession(null);
+    } finally {
+      endingRef.current = false;
       setBusy(false);
     }
-  }
+  }, []);
 
-  // A one-second countdown driven by a chain of timeouts rather than a single interval
   useEffect(() => {
     if (!session) return;
-    if (remaining <= 0) {
-      void end(true);
-      return;
-    }
-    const id = window.setTimeout(() => setRemaining((value) => value - 1), 1000);
-    return () => window.clearTimeout(id);
-  }, [session, remaining]);
+    const id = window.setInterval(() => {
+      const current = Date.now();
+      setNow(current);
+      if (current >= endsAt) void endSession(session.id);
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [session, endsAt, endSession]);
 
   async function start() {
-    if (busy) return;
     setBusy(true);
-    setError(null);
     try {
       const created = await apiRequest<FocusSession>("/focus-sessions", {
         method: "POST",
-        body: { planned_minutes: PLANNED_MINUTES },
+        body: { planned_minutes: minutes },
       });
+      setResult(null);
+      setEndsAt(Date.now() + created.planned_minutes * 60 * 1000);
+      setNow(Date.now());
       setSession(created);
-      setRemaining(PLANNED_MINUTES * 60);
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setBusy(false);
     }
   }
-
-  const running = session !== null;
 
   return (
     <article className="card focus-timer-card">
       <div className="card-title">
         <h3 className="mono-label">Focus timer</h3>
-        <span className="muted small">{PLANNED_MINUTES} min</span>
+        {session ? (
+          <span className="muted small">{session.planned_minutes} min</span>
+        ) : (
+          <select
+            aria-label="Session length"
+            value={minutes}
+            disabled={busy}
+            onChange={(event) => setMinutes(Number(event.target.value))}
+          >
+            {PRESETS.map((preset) => (
+              <option key={preset} value={preset}>
+                {preset} min
+              </option>
+            ))}
+          </select>
+        )}
       </div>
       <p className="focus-clock mono-label">{formatRemaining(remaining)}</p>
-      {error && <p className="error">{error}</p>}
+      {result && !session && <p className="notice">{resultText(result)}</p>}
       <div className="focus-timer-actions">
-        {running ? (
-          <button type="button" className="button secondary" disabled={busy} onClick={() => end(false)}>
+        {session ? (
+          <button type="button" className="button secondary" disabled={busy} onClick={() => endSession(session.id)}>
             Stop
           </button>
         ) : (
@@ -99,12 +139,16 @@ export default function FocusTimerCard() {
             Start
           </button>
         )}
+        <button type="button" className="button secondary compact" onClick={() => setHistoryOpen((open) => !open)}>
+          {historyOpen ? "Hide history" : "History"}
+        </button>
       </div>
       {todayCount !== null && (
         <p className="muted small">
-          {todayCount} focus session{todayCount === 1 ? "" : "s"} today
+          {todayCount} focus session{todayCount === 1 ? "" : "s"} ended today
         </p>
       )}
+      {historyOpen && <FocusHistory />}
     </article>
   );
 }

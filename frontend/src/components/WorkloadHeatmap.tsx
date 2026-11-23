@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
 
 import { apiRequest, errorMessage } from "@/lib/api";
 
-type WorkloadItem = { kind: "milestone" | "deadline"; id: number; assignment_id: number; title: string; course: string };
+type WorkloadKind = "milestone" | "deadline";
+type WorkloadItem = { kind: WorkloadKind; id: number; assignment_id: number; title: string; course: string };
 type WorkloadDay = { date: string; count: number; items: WorkloadItem[] };
 type WorkloadResponse = { start: string; end: string; days: WorkloadDay[] };
 
@@ -37,6 +39,7 @@ function intensityClass(count: number): string {
 
 const MONTH_LABEL = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const KIND_LABELS: Record<WorkloadKind, string> = { milestone: "Milestones", deadline: "Assignment deadlines" };
 
 export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: number } = {}) {
   const today = useMemo(() => new Date(), []);
@@ -46,6 +49,10 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [kinds, setKinds] = useState<Record<WorkloadKind, boolean>>({ milestone: true, deadline: true });
+
+  const kindsParam = (["milestone", "deadline"] as const).filter((kind) => kinds[kind]).join(",");
+  const isCurrentMonth = year === today.getUTCFullYear() && month === today.getUTCMonth();
 
   const monthStart = useMemo(() => startOfMonth(year, month), [year, month]);
   const monthEnd = useMemo(() => endOfMonth(year, month), [year, month]);
@@ -54,10 +61,17 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
   useEffect(() => {
     let cancelled = false;
     setError(null);
+    if (!kindsParam) {
+      setDays({});
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
     setLoading(true);
     const scope = assignmentId ? `&assignment_id=${assignmentId}` : "";
     apiRequest<WorkloadResponse>(
-      `/schedule/workload?start=${toISODate(monthStart)}&end=${toISODate(monthEnd)}${scope}`,
+      `/schedule/workload?start=${toISODate(monthStart)}&end=${toISODate(monthEnd)}&kinds=${kindsParam}${scope}`,
     ).then(
       (response) => {
         if (cancelled) return;
@@ -75,12 +89,23 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
     return () => {
       cancelled = true;
     };
-  }, [monthStart, monthEnd, assignmentId]);
+  }, [monthStart, monthEnd, assignmentId, kindsParam]);
 
   function changeMonth(delta: number) {
     const next = new Date(Date.UTC(year, month + delta, 1));
     setYear(next.getUTCFullYear());
     setMonth(next.getUTCMonth());
+    setSelected(null);
+  }
+
+  function goToToday() {
+    setYear(today.getUTCFullYear());
+    setMonth(today.getUTCMonth());
+    setSelected(null);
+  }
+
+  function toggleKind(kind: WorkloadKind) {
+    setKinds((current) => ({ ...current, [kind]: !current[kind] }));
     setSelected(null);
   }
 
@@ -106,6 +131,19 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
         <button type="button" className="button secondary" onClick={() => changeMonth(1)} aria-label="Next month">
           →
         </button>
+        <button type="button" className="button secondary compact" onClick={goToToday} disabled={isCurrentMonth}>
+          Today
+        </button>
+        <details className="kind-filter">
+          <summary className="button secondary compact">Types</summary>
+          <div className="kind-filter-menu">
+            {(["milestone", "deadline"] as const).map((kind) => (
+              <label key={kind} className="kind-filter-option">
+                <input type="checkbox" checked={kinds[kind]} onChange={() => toggleKind(kind)} /> {KIND_LABELS[kind]}
+              </label>
+            ))}
+          </div>
+        </details>
       </div>
 
       {error && <p className="error">{error}</p>}
@@ -166,6 +204,11 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
                 <span className="muted small">
                   {item.course} · {item.kind === "deadline" ? "assignment deadline" : "milestone"}
                 </span>
+                {item.kind === "deadline" && (
+                  <Link to={`/assignments/${item.assignment_id}`} className="button secondary compact">
+                    View
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
