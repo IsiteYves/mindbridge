@@ -151,3 +151,14 @@ def test_an_item_can_be_unmarked_again(client, make_user_headers):
     response = client.patch(f"{DAILY_GOAL}/today/items/0", json={"done": False}, headers=headers)
     assert response.get_json()["items"][0]["done"] is False
     assert response.get_json()["done_count"] == 0
+
+
+def test_an_unmarked_item_stays_unmarked_on_reload(client, make_user_headers):
+    headers = make_user_headers("student1")
+    make_milestones(client, headers, [("First", "2026-11-05T00:00:00+00:00")])
+    client.get(f"{DAILY_GOAL}/today", headers=headers)
+    client.patch(f"{DAILY_GOAL}/today/items/0", json={"done": True}, headers=headers)
+    client.patch(f"{DAILY_GOAL}/today/items/0", json={"done": False}, headers=headers)
+
+    reloaded = client.get(f"{DAILY_GOAL}/today", headers=headers).get_json()
+    assert reloaded["items"][0]["done"] is False
