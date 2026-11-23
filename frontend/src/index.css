@@ -1590,7 +1590,7 @@ h2 {
 }
 
 .settings-section {
-  margin-top: 32px;
+  margin-top: 14px;
 }
 
 .settings-section:first-child {
@@ -1598,5 +1598,5 @@ h2 {
 }
 
 .settings-section h3 {
-  margin: 0 0 14px;
+  margin: 0 0 8px;
 }
