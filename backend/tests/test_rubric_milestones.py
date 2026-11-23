@@ -98,3 +98,30 @@ def test_a_submitted_assignment_cannot_be_planned(client, make_user_headers):
     assignment_id = make_assignment(client, headers, future)
     client.patch(f"/api/v1/assignments/{assignment_id}", json={"status": "done"}, headers=headers)
     assert generate(client, headers, assignment_id).status_code == 400
+
+
+def test_setting_a_milestone_in_progress_moves_its_assignment_in_progress(client, make_user_headers):
+    headers = make_user_headers("student1")
+    future = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=10)).isoformat()
+    assignment_id = make_assignment(client, headers, future)
+    milestone = client.post(
+        f"/api/v1/assignments/{assignment_id}/milestones",
+        json={"title": "Draft", "target_date": future},
+        headers=headers,
+    ).get_json()
+    client.patch(f"/api/v1/milestones/{milestone['id']}", json={"status": "in_progress"}, headers=headers)
+    assert client.get(f"/api/v1/assignments/{assignment_id}", headers=headers).get_json()["status"] == "in_progress"
+
+
+def test_a_done_assignment_is_not_moved_back_by_a_milestone(client, make_user_headers):
+    headers = make_user_headers("student1")
+    future = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=10)).isoformat()
+    assignment_id = make_assignment(client, headers, future)
+    client.patch(f"/api/v1/assignments/{assignment_id}", json={"status": "done"}, headers=headers)
+    milestone = client.post(
+        f"/api/v1/assignments/{assignment_id}/milestones",
+        json={"title": "Draft", "target_date": future},
+        headers=headers,
+    ).get_json()
+    client.patch(f"/api/v1/milestones/{milestone['id']}", json={"status": "in_progress"}, headers=headers)
+    assert client.get(f"/api/v1/assignments/{assignment_id}", headers=headers).get_json()["status"] == "done"

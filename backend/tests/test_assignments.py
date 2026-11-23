@@ -69,7 +69,7 @@ def test_list_returns_only_own_assignments_ordered_by_deadline(client, make_user
     create(client, mine, title="Sooner", deadline="2026-11-10T00:00:00+00:00")
     create(client, make_user_headers("student2"), title="Not mine")
 
-    titles = [a["title"] for a in client.get(BASE, headers=mine).get_json()]
+    titles = [a["title"] for a in client.get(BASE, headers=mine).get_json()["items"]]
 
     assert titles == ["Sooner", "Later"]
 
@@ -138,3 +138,44 @@ def test_delete_removes_milestones(app, client, make_user_headers):
 
     assert db.session.query(Assignment).count() == 0
     assert db.session.query(Milestone).count() == 0
+
+
+def test_the_list_is_paginated_with_a_default_of_fifteen(client, make_user_headers):
+    headers = make_user_headers("student1")
+    for index in range(17):
+        create(client, headers, title=f"Task {index:02d}", deadline=f"2026-12-{index + 1:02d}T00:00:00+00:00")
+
+    first = client.get(BASE, headers=headers).get_json()
+    assert first["total"] == 17
+    assert first["limit"] == 15
+    assert len(first["items"]) == 15
+
+    second = client.get(f"{BASE}?offset=15", headers=headers).get_json()
+    assert [a["title"] for a in second["items"]] == ["Task 15", "Task 16"]
+
+
+def test_the_list_refuses_an_unbounded_page(client, make_user_headers):
+    headers = make_user_headers("student1")
+    assert client.get(f"{BASE}?limit=500", headers=headers).status_code == 400
+
+
+def test_the_list_filters_by_name_and_state_on_the_server(client, make_user_headers):
+    headers = make_user_headers("student1")
+    create(client, headers, title="Poster design", deadline="2026-12-01T00:00:00+00:00")
+    done = create(client, headers, title="Poster review", deadline="2026-12-02T00:00:00+00:00").get_json()
+    client.patch(f"{BASE}/{done['id']}", json={"status": "done"}, headers=headers)
+    create(client, headers, title="Essay", deadline="2026-12-03T00:00:00+00:00")
+
+    by_name = client.get(f"{BASE}?q=poster", headers=headers).get_json()
+    assert by_name["total"] == 2
+
+    pending = client.get(f"{BASE}?state=pending&q=poster", headers=headers).get_json()
+    assert [a["title"] for a in pending["items"]] == ["Poster design"]
+
+    closed = client.get(f"{BASE}?state=closed", headers=headers).get_json()
+    assert [a["title"] for a in closed["items"]] == ["Poster review"]
+
+
+def test_the_list_rejects_an_unknown_state(client, make_user_headers):
+    headers = make_user_headers("student1")
+    assert client.get(f"{BASE}?state=whatever", headers=headers).status_code == 400

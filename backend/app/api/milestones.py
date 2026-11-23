@@ -227,6 +227,8 @@ def update_milestone(milestone_id):
         if data["status"] not in STATUSES:
             return jsonify(error=f"status must be one of {', '.join(STATUSES)}"), 400
         milestone.status = data["status"]
+        if milestone.status == "in_progress" and milestone.assignment.status == "not_started":
+            milestone.assignment.status = "in_progress"
 
     if "weight" in data:
         is_valid, weight = _weight(data["weight"])

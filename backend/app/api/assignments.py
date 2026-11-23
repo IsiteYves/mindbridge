@@ -1,4 +1,7 @@
-from flask import Blueprint, abort, g, jsonify
+import datetime as dt
+
+from flask import Blueprint, abort, g, jsonify, request
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
 
 from app.api.auth import token_required
@@ -15,6 +18,31 @@ from app.extensions import db
 from app.models import Assignment
 
 assignments_bp = Blueprint("assignments", __name__, url_prefix="/assignments")
+
+
+LIST_DEFAULT_LIMIT = 15
+LIST_MAX_LIMIT = 100
+LIST_STATES = ("all", "pending", "closed")
+LIST_SORTS = ("deadline_asc", "deadline_desc")
+MAX_QUERY_LENGTH = 255
+
+
+def _list_int(name, default, minimum, maximum):
+    try:
+        value = int(request.args.get(name, default))
+    except (TypeError, ValueError):
+        return None
+    return value if minimum <= value <= maximum else None
+
+
+def _list_date(name):
+    raw = request.args.get(name)
+    if not raw:
+        return None, True
+    try:
+        return dt.date.fromisoformat(raw), True
+    except ValueError:
+        return None, False
 
 
 def assignment_json(assignment):
@@ -39,13 +67,40 @@ def owned_assignment_or_404(assignment_id):
 @assignments_bp.get("")
 @token_required
 def list_assignments():
-    assignments = (
-        db.session.query(Assignment)
-        .filter_by(user_id=g.current_user.id)
-        .order_by(Assignment.deadline.is_(None), Assignment.deadline, Assignment.id)
-        .all()
-    )
-    return jsonify([assignment_json(a) for a in assignments])
+    limit = _list_int("limit", LIST_DEFAULT_LIMIT, 1, LIST_MAX_LIMIT)
+    offset = _list_int("offset", 0, 0, 10**9)
+    state = request.args.get("state", "all")
+    sort = request.args.get("sort", "deadline_asc")
+    query_text = (request.args.get("q") or "").strip()[:MAX_QUERY_LENGTH]
+    start, start_ok = _list_date("from")
+    end, end_ok = _list_date("to")
+    if limit is None or offset is None:
+        return jsonify(error=f"limit must be 1 to {LIST_MAX_LIMIT} and offset must be 0 or more"), 400
+    if state not in LIST_STATES or sort not in LIST_SORTS or not start_ok or not end_ok:
+        return jsonify(error="state, sort, from or to is not valid"), 400
+
+    now = dt.datetime.now(dt.timezone.utc)
+    query = db.session.query(Assignment).filter(Assignment.user_id == g.current_user.id)
+    if state == "pending":
+        query = query.filter(and_(Assignment.status != "done", Assignment.deadline > now))
+    elif state == "closed":
+        query = query.filter(or_(Assignment.status == "done", Assignment.deadline.is_(None), Assignment.deadline <= now))
+    if query_text:
+        query = query.filter(
+            or_(
+                Assignment.title.icontains(query_text, autoescape=True),
+                Assignment.course.icontains(query_text, autoescape=True),
+            )
+        )
+    if start is not None:
+        query = query.filter(Assignment.deadline >= dt.datetime.combine(start, dt.time.min, tzinfo=dt.timezone.utc))
+    if end is not None:
+        query = query.filter(Assignment.deadline < dt.datetime.combine(end + dt.timedelta(days=1), dt.time.min, tzinfo=dt.timezone.utc))
+
+    total = query.count()
+    order = Assignment.deadline.desc() if sort == "deadline_desc" else Assignment.deadline.asc()
+    items = query.order_by(Assignment.deadline.is_(None), order, Assignment.id).offset(offset).limit(limit).all()
+    return jsonify(items=[assignment_json(a) for a in items], total=total, limit=limit, offset=offset)
 
 
 @assignments_bp.post("")
