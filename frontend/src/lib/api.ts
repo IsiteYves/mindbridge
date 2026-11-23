@@ -105,11 +105,13 @@ export type AgentReview = {
 };
 export class ApiError extends Error {
   status: number;
+  details: Record<string, unknown>;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, details: Record<string, unknown> = {}) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.details = details;
   }
 }
 
@@ -164,7 +166,7 @@ export async function apiRequest<T>(path: string, options: { method?: string; bo
     const isSessionCheck = !path.startsWith("/auth/") && !path.startsWith("/canvas/");
     if (response.status === 401 && token && isSessionCheck) clearToken();
     const message = typeof data.error === "string" ? data.error : `Request failed (${response.status})`;
-    throw new ApiError(message, response.status);
+    throw new ApiError(message, response.status, data);
   }
   return data as T;
 }
