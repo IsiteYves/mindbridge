@@ -132,6 +132,27 @@ def owned_reminder_or_404(reminder_id):
     return reminder
 
 
+NOTIFICATION_KINDS = ("deadline", "milestone", "overdue", "new_item")
+
+
+@notifications_bp.post("/dismiss-all")
+@token_required
+def dismiss_all():
+    kinds = json_body().get("kinds")
+    if kinds is not None and (not isinstance(kinds, list) or not set(kinds) <= set(NOTIFICATION_KINDS)):
+        return jsonify(error=f"kinds must be a list of {', '.join(NOTIFICATION_KINDS)}"), 400
+    query = db.session.query(Reminder).filter(
+        Reminder.user_id == g.current_user.id,
+        Reminder.sent_at.isnot(None),
+        Reminder.dismissed_at.is_(None),
+    )
+    if kinds:
+        query = query.filter(Reminder.kind.in_(kinds))
+    dismissed = query.update({"dismissed_at": dt.datetime.now(dt.timezone.utc)}, synchronize_session=False)
+    db.session.commit()
+    return jsonify(dismissed=dismissed)
+
+
 @notifications_bp.post("/<int:reminder_id>/dismiss")
 @token_required
 def dismiss(reminder_id):
