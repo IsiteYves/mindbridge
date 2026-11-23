@@ -7,6 +7,7 @@ import PublicHeader from "@/components/PublicHeader";
 import SiteFooter from "@/components/SiteFooter";
 import ToastHost from "@/components/ToastHost";
 import AssignmentDetailPage from "@/pages/AssignmentDetailPage";
+import AssignmentSearchPage from "@/pages/AssignmentSearchPage";
 import AssignmentsPage from "@/pages/AssignmentsPage";
 import CheckInPage from "@/pages/CheckInPage";
 import HomePage from "@/pages/HomePage";
@@ -55,6 +56,7 @@ export default function App() {
       <Route path="/plan" element={guard(<PlanPage />)} />
       <Route path="/import" element={guard(<ImportPage />)} />
       <Route path="/assignments" element={guard(<AssignmentsPage />)} />
+      <Route path="/assignments/search" element={guard(<AssignmentSearchPage />)} />
       <Route path="/assignments/:id" element={guard(<AssignmentDetailPage />)} />
       <Route path="/settings" element={guard(<SettingsPage />)} />
       <Route path="/planning-guide" element={guard(<PlanningGuidePage />)} />

@@ -130,6 +130,9 @@ export default function AssignmentsPage() {
         <div className="card-title">
           <h2>Upcoming</h2>
           <span className="muted">Pending, sorted by deadline</span>
+          <Link to="/assignments/search" className="button secondary compact">
+            Search all
+          </Link>
         </div>
         {assignments && closedList.length > 0 && (
           <button type="button" className="button secondary compact" onClick={() => setShowClosed((v) => !v)}>
@@ -144,7 +147,7 @@ export default function AssignmentsPage() {
           </div>
         )}
         {visibleList.length > 0 && (
-          <ul className="list">
+          <ul className="list assignment-list">
             {visibleList.map((assignment) => (
               <li key={assignment.id}>
                 <div>
@@ -155,7 +158,12 @@ export default function AssignmentsPage() {
                     {assignment.course} · {formatDate(assignment.deadline)}
                   </p>
                 </div>
-                <span className={`status-text status-${assignment.status}`}>{STATUS_LABEL(assignment.status)}</span>
+                <div className="assignment-actions">
+                  <span className={`status-text status-${assignment.status}`}>{STATUS_LABEL(assignment.status)}</span>
+                  <Link to={`/assignments/${assignment.id}`} className="button secondary compact">
+                    View
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>

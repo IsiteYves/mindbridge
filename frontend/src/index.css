@@ -1600,3 +1600,23 @@ h2 {
 .settings-section h3 {
   margin: 0 0 8px;
 }
+
+.assignment-list li {
+  padding: 14px 10px;
+  border-radius: var(--radius-md);
+  transition: background-color 0.15s ease;
+}
+
+.assignment-list li:hover {
+  background: color-mix(in srgb, var(--brand) 7%, transparent);
+}
+
+.assignment-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.heatmap-count {
+  white-space: nowrap;
+}

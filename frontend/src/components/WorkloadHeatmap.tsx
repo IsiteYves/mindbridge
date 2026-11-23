@@ -142,7 +142,11 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
                   onClick={() => setSelected(date === selected ? null : date)}
                 >
                   <span className="heatmap-date">{Number(date.slice(8, 10))}</span>
-                  {count > 0 && <span className="heatmap-count">{count}</span>}
+                  {count > 0 && (
+                    <span className="heatmap-count">
+                      {count} {count === 1 ? "item" : "items"}
+                    </span>
+                  )}
                 </button>
               );
             })}
