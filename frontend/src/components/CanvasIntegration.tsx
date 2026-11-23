@@ -121,9 +121,29 @@ export default function CanvasIntegration() {
             </button>
           </div>
           {lastResult && (
-            <p className="muted small">
-              Last sync: {lastResult.created} created, {lastResult.updated} updated, {lastResult.skipped.length} skipped.
-            </p>
+            <>
+              <p className="muted small">
+                Last sync: {lastResult.created} created, {lastResult.updated} updated, {lastResult.skipped.length}{" "}
+                skipped.
+              </p>
+              {lastResult.skipped.length > 0 && (
+                <details className="skipped-list">
+                  <summary className="muted small">Why {lastResult.skipped.length} were skipped</summary>
+                  <p className="muted small">
+                    Canvas has no due date for these, so they cannot be planned until one is set in Canvas.
+                  </p>
+                  <ul className="list">
+                    {lastResult.skipped.map((item) => (
+                      <li key={item.canvas_id}>
+                        <span>
+                          {item.title} <span className="muted small">· {item.reason}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </>
           )}
         </>
       ) : (
