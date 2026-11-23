@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 
 import CanvasIntegration from "@/components/CanvasIntegration";
 import ProfileSettings from "@/components/ProfileSettings";
@@ -14,8 +15,16 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "integrations", label: "Integrations" },
 ];
 
+const SECTION_ALIASES: Record<string, TabId> = { integration: "integrations" };
+
+function initialTab(requested: string | null): TabId {
+  const resolved = requested ? (SECTION_ALIASES[requested] ?? requested) : null;
+  return TABS.some((tab) => tab.id === resolved) ? (resolved as TabId) : "profile";
+}
+
 export default function SettingsPage() {
-  const [active, setActive] = useState<TabId>("profile");
+  const [params] = useSearchParams();
+  const [active, setActive] = useState<TabId>(() => initialTab(params.get("section")));
   const user = useCurrentUser();
   const [theme, toggleTheme] = useTheme();
 

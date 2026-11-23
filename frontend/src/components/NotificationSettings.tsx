@@ -17,6 +17,40 @@ const OFFSET_LABEL: Record<ReminderOffset, string> = {
   0: "On the due date",
 };
 
+const KIND_LABEL: Record<string, string> = {
+  deadline: "Deadline",
+  milestone: "Milestone",
+  overdue: "Overdue",
+  new_item: "New Item",
+};
+
+function InboxGroup({
+  title,
+  items,
+  onDismiss,
+}: {
+  title: string;
+  items: NotificationItem[];
+  onDismiss: (id: number) => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div className="inbox-group">
+      <h4 className="mono-label">{title}</h4>
+      <ul className="list">
+        {items.map((item) => (
+          <li key={item.id}>
+            <span>{KIND_LABEL[item.kind] ?? item.kind}</span>
+            <button type="button" className="button secondary compact" onClick={() => onDismiss(item.id)}>
+              Dismiss
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function NotificationSettings() {
   const [preferences, setPreferences] = useState<ReminderPreference[] | null>(null);
   const [draft, setDraft] = useState<Partial<Record<ReminderOffset, boolean>>>({});
@@ -103,20 +137,14 @@ export default function NotificationSettings() {
       </p>
 
       <div className="notification-inbox">
-        <h3>Recent reminders</h3>
+        <h3>Inbox</h3>
         {inbox === null && !error && <p className="muted">Loading…</p>}
         {inbox && inbox.length === 0 && <p className="empty-state">Nothing to show yet.</p>}
         {inbox && inbox.length > 0 && (
-          <ul className="list">
-            {inbox.map((item) => (
-              <li key={item.id}>
-                <span>{item.kind.replace("_", " ")}</span>
-                <button type="button" className="button secondary" onClick={() => dismiss(item.id)}>
-                  Dismiss
-                </button>
-              </li>
-            ))}
-          </ul>
+          <>
+            <InboxGroup title="Reminders" items={inbox.filter((item) => item.kind !== "new_item")} onDismiss={dismiss} />
+            <InboxGroup title="Updates" items={inbox.filter((item) => item.kind === "new_item")} onDismiss={dismiss} />
+          </>
         )}
       </div>
     </div>
