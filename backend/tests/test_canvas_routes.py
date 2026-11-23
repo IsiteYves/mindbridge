@@ -341,3 +341,30 @@ def test_sync_all_disconnects_and_continues_past_a_broken_connection(canvas_app,
 
     status = client.get(f"{CANVAS}/status", headers=headers).get_json()
     assert status["status"] == "disconnected"
+
+def test_available_courses_mark_the_saved_selection(canvas_app, client, make_user_headers, encryption_key):
+    headers = make_user_headers("student1")
+    client.post(f"{CANVAS}/connect", json={"token": TOKEN, "course_ids": ["101"]}, headers=headers)
+
+    courses = client.get(f"{CANVAS}/courses/available", headers=headers).get_json()
+    assert courses == [{"id": "101", "name": "Software Engineering", "selected": True}]
+
+
+def test_changing_the_selection_uses_the_stored_token_and_resyncs(canvas_app, client, make_user_headers, encryption_key):
+    headers = make_user_headers("student1")
+    client.post(f"{CANVAS}/connect", json={"token": TOKEN, "course_ids": ["101"]}, headers=headers)
+
+    response = client.put(f"{CANVAS}/courses/selection", json={"course_ids": ["101"]}, headers=headers)
+    assert response.status_code == 200
+    assert response.get_json()["connection"]["status"] == "connected"
+
+
+def test_changing_the_selection_refuses_unknown_courses(canvas_app, client, make_user_headers, encryption_key):
+    headers = make_user_headers("student1")
+    client.post(f"{CANVAS}/connect", json={"token": TOKEN, "course_ids": ["101"]}, headers=headers)
+    assert client.put(f"{CANVAS}/courses/selection", json={"course_ids": ["999"]}, headers=headers).status_code == 400
+
+
+def test_available_courses_need_a_connection_first(canvas_app, client, make_user_headers, encryption_key):
+    headers = make_user_headers("student1")
+    assert client.get(f"{CANVAS}/courses/available", headers=headers).status_code == 409

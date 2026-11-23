@@ -23,10 +23,10 @@ def is_overdue(target: dt.date, today: dt.date) -> bool:
 
 def _subject_for(kind: str) -> str:
     return {
-        "deadline": "Upcoming deadline — MindBridge",
-        "milestone": "Upcoming milestone — MindBridge",
-        "overdue": "Still open and overdue — MindBridge",
-        "new_item": "New item added to your plan — MindBridge",
+        "deadline": "Upcoming Deadline — MindBridge",
+        "milestone": "Upcoming Milestone — MindBridge",
+        "overdue": "Overdue: Still Open — MindBridge",
+        "new_item": "New Item Added to Your Plan — MindBridge",
     }[kind]
 
 

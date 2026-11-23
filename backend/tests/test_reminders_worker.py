@@ -141,7 +141,7 @@ def test_importing_a_genuinely_new_assignment_sends_a_new_item_reminder(app, cli
     )
 
     client.post("/api/v1/canvas/import", json={"token": "fake-token", "course_ids": ["1"]}, headers=headers)
-    assert any(r["subject"].startswith("New item") for r in app.config["SENT_REMINDERS"])
+    assert any(r["subject"].startswith("New Item") for r in app.config["SENT_REMINDERS"])
 
 
 def test_re_importing_an_existing_assignment_does_not_send_a_second_new_item_reminder(app, client, make_user_headers, monkeypatch):
