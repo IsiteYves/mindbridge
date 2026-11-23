@@ -1757,7 +1757,7 @@ h2 {
 }
 
 .focus-history-link {
-  margin-left: auto;
+  margin-left: 4px;
 }
 
 .status-select {
