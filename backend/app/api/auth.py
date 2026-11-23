@@ -9,7 +9,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
 from app.models import ReminderPreference, User
-from app.services.codes import check_code, issue_code
+from app.services.codes import check_code, issue_code, seconds_until_next_code
 from app.services.mailer import MailError, send_code
 from app.services.passwords import MAX_PASSWORD_LENGTH, password_problems
 
@@ -157,7 +157,10 @@ def resend_code():
     if user is not None and not user.email_verified:
         code = issue_code(user, "signup")
         if code is None:
-            return jsonify(error="Wait a minute before requesting another code"), 429
+            return (
+                jsonify(error="Please wait before requesting another code", retry_after=seconds_until_next_code(user.id, "signup")),
+                429,
+            )
         db.session.commit()
         send_code(email, "signup", code)
     return jsonify(message="If that account is waiting for verification, a new code has been sent."), 200

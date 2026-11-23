@@ -424,3 +424,10 @@ def test_registering_an_unverified_existing_email_says_so(client):
     response = register(client)
     assert response.status_code == 409
     assert response.get_json()["unverified"] is True
+
+
+def test_resending_within_five_minutes_is_refused_with_retry_after(client):
+    assert register(client).status_code == 201
+    response = client.post("/api/v1/auth/resend-code", json={"email": EMAIL})
+    assert response.status_code == 429
+    assert 0 < response.get_json()["retry_after"] <= 300

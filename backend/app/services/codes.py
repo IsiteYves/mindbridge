@@ -7,7 +7,7 @@ from app.extensions import db
 from app.models import VerificationCode
 
 CODE_TTL = dt.timedelta(minutes=10)
-RESEND_COOLDOWN = dt.timedelta(seconds=60)
+RESEND_COOLDOWN = dt.timedelta(minutes=5)
 MAX_ATTEMPTS = 5
 
 
@@ -22,6 +22,14 @@ def _latest(user_id, purpose):
         .order_by(VerificationCode.created_at.desc(), VerificationCode.id.desc())
         .first()
     )
+
+
+def seconds_until_next_code(user_id, purpose):
+    latest = _latest(user_id, purpose)
+    if latest is None:
+        return 0
+    remaining = RESEND_COOLDOWN - (_now() - latest.created_at)
+    return max(0, int(remaining.total_seconds()))
 
 
 def issue_code(user, purpose):
