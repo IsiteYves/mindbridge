@@ -29,11 +29,10 @@ def test_create_returns_assignment_with_default_status(client, make_user_headers
     assert body["canvas_id"] is None
 
 
-def test_create_allows_missing_deadline_for_manual_entry(client, make_user_headers):
+def test_create_requires_a_deadline(client, make_user_headers):
     response = create(client, make_user_headers("student1"), deadline=None)
 
-    assert response.status_code == 201
-    assert response.get_json()["deadline"] is None
+    assert response.status_code == 400
 
 
 def test_create_rejects_invalid_input(client, make_user_headers):
@@ -68,12 +67,11 @@ def test_list_returns_only_own_assignments_ordered_by_deadline(client, make_user
     mine = make_user_headers("student1")
     create(client, mine, title="Later", deadline="2026-12-01T00:00:00+00:00")
     create(client, mine, title="Sooner", deadline="2026-11-10T00:00:00+00:00")
-    create(client, mine, title="No deadline", deadline=None)
     create(client, make_user_headers("student2"), title="Not mine")
 
     titles = [a["title"] for a in client.get(BASE, headers=mine).get_json()]
 
-    assert titles == ["Sooner", "Later", "No deadline"]
+    assert titles == ["Sooner", "Later"]
 
 
 def test_get_update_and_delete_own_assignment(client, make_user_headers):
@@ -83,9 +81,11 @@ def test_get_update_and_delete_own_assignment(client, make_user_headers):
     assert client.get(f"{BASE}/{assignment_id}", headers=headers).status_code == 200
 
     updated = client.patch(f"{BASE}/{assignment_id}", json={"status": "in_progress", "deadline": None}, headers=headers)
+    assert updated.status_code == 400
+
+    updated = client.patch(f"{BASE}/{assignment_id}", json={"status": "in_progress"}, headers=headers)
     assert updated.status_code == 200
     assert updated.get_json()["status"] == "in_progress"
-    assert updated.get_json()["deadline"] is None
 
     assert client.delete(f"{BASE}/{assignment_id}", headers=headers).status_code == 204
     assert client.get(f"{BASE}/{assignment_id}", headers=headers).status_code == 404

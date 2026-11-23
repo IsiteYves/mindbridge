@@ -80,6 +80,33 @@ def update_preference():
     return jsonify(preference_json(preference))
 
 
+@notifications_bp.put("/preferences")
+@token_required
+def replace_preferences():
+    items = json_body().get("preferences")
+    if not isinstance(items, list) or not items:
+        return jsonify(error="preferences must be a non-empty list"), 400
+    wanted = {}
+    for item in items:
+        if not isinstance(item, dict) or item.get("offset_days") not in ALLOWED_OFFSETS:
+            return jsonify(error=f"offset_days must be one of {', '.join(map(str, ALLOWED_OFFSETS))}"), 400
+        if not isinstance(item.get("enabled"), bool):
+            return jsonify(error="enabled must be true or false"), 400
+        wanted[item["offset_days"]] = item["enabled"]
+
+    existing = {
+        preference.offset_days: preference
+        for preference in db.session.query(ReminderPreference).filter_by(user_id=g.current_user.id)
+    }
+    for offset_days, enabled in wanted.items():
+        if offset_days in existing:
+            existing[offset_days].enabled = enabled
+        else:
+            db.session.add(ReminderPreference(user_id=g.current_user.id, offset_days=offset_days, enabled=enabled))
+    db.session.commit()
+    return list_preferences()
+
+
 @notifications_bp.get("")
 @token_required
 def list_notifications():

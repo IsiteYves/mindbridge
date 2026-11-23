@@ -68,8 +68,8 @@ def create_assignment():
         return jsonify(error=f"status must be one of {', '.join(STATUSES)}"), 400
 
     is_valid, deadline = parse_deadline(data.get("deadline"))
-    if not is_valid:
-        return jsonify(error="deadline must be an ISO 8601 date-time with a timezone offset"), 400
+    if not is_valid or deadline is None:
+        return jsonify(error="deadline is required and must be an ISO 8601 date-time with a timezone offset"), 400
 
     assignment = Assignment(
         user_id=g.current_user.id,
@@ -120,9 +120,9 @@ def update_assignment(assignment_id):
 
     if "deadline" in data:
         is_valid, deadline = parse_deadline(data["deadline"])
-        if not is_valid:
-            return jsonify(error="deadline must be an ISO 8601 date-time with a timezone offset"), 400
-        if deadline is not None and any(m.target_date > deadline for m in assignment.milestones):
+        if not is_valid or deadline is None:
+            return jsonify(error="deadline is required and must be an ISO 8601 date-time with a timezone offset"), 400
+        if any(m.target_date > deadline for m in assignment.milestones):
             return jsonify(error="deadline cannot be earlier than an existing milestone"), 400
         assignment.deadline = deadline
 

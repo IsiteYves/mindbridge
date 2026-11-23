@@ -55,10 +55,8 @@ def test_second_generation_requires_replace(client, make_user_headers):
 
 def test_generation_needs_a_future_deadline(client, make_user_headers):
     headers = make_user_headers("student1")
-    no_deadline = make_assignment(client, headers)
     past = make_assignment(client, headers, (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)).isoformat())
 
-    assert generate(client, headers, no_deadline).status_code == 400
     assert generate(client, headers, past).status_code == 400
 
 

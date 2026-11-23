@@ -155,3 +155,18 @@ def test_dismissing_an_unsent_reminder_is_refused(client, make_user_headers):
     db.session.commit()
 
     assert client.post(f"{NOTIFICATIONS}/{reminder.id}/dismiss", headers=headers).status_code == 409
+
+
+def test_put_preferences_saves_every_offset_at_once(client, make_user_headers):
+    headers = make_user_headers("student1")
+    body = {"preferences": [{"offset_days": offset, "enabled": offset != 2} for offset in (5, 2, 1, 0)]}
+    response = client.put("/api/v1/notifications/preferences", json=body, headers=headers)
+    assert response.status_code == 200
+    saved = {item["offset_days"]: item["enabled"] for item in response.get_json()}
+    assert saved == {5: True, 2: False, 1: True, 0: True}
+
+
+def test_put_preferences_rejects_an_unknown_offset(client, make_user_headers):
+    headers = make_user_headers("student1")
+    body = {"preferences": [{"offset_days": 9, "enabled": True}]}
+    assert client.put("/api/v1/notifications/preferences", json=body, headers=headers).status_code == 400
