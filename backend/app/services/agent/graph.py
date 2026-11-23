@@ -37,8 +37,9 @@ def _slip_node(state: PlanReviewState) -> dict:
     return {"slipping_ids": deterministic.detect_slipping(state["milestones"], state["now"])}
 
 
-def _has_slipped(state: PlanReviewState) -> str:
-    return "replan" if state.get("slipping_ids") else "qualitative_check"
+def _needs_replan(state: PlanReviewState) -> str:
+    crowded = deterministic.check_crowding(state["milestones"], state["deadline"], state["now"])
+    return "replan" if state.get("slipping_ids") or crowded else "qualitative_check"
 
 
 def _replan_node(state: PlanReviewState) -> dict:
@@ -93,7 +94,7 @@ def build_graph():
 
     graph.add_edge(START, "balance")
     graph.add_edge("balance", "slip")
-    graph.add_conditional_edges("slip", _has_slipped, {"replan": "replan", "qualitative_check": "qualitative_router"})
+    graph.add_conditional_edges("slip", _needs_replan, {"replan": "replan", "qualitative_check": "qualitative_router"})
     # A tiny no-op router node, so both the "slipped" and "did not slip" paths
     # arrive at the same place before the second conditional edge decides
     # whether to call the model. LangGraph conditional edges route to a named
