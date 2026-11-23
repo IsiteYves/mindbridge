@@ -10,7 +10,11 @@ import { formatDate, fromLocalInput, toLocalInput } from "@/lib/dates";
 import { toast } from "@/lib/toast";
 
 const STATUS_OPTIONS: Status[] = ["not_started", "in_progress", "done"];
-const STATUS_LABEL = (status: Status) => status.replace("_", " ");
+const STATUS_LABEL: Record<Status, string> = {
+  not_started: "Not Started",
+  in_progress: "In Progress",
+  done: "Done",
+};
 
 type CriterionDraft = { title: string; weight: string };
 
@@ -146,7 +150,7 @@ export default function AssignmentView({ id }: { id: string }) {
             <select value={assignment.status} onChange={(event) => changeStatus(event.target.value as Status)}>
               {STATUS_OPTIONS.map((option) => (
                 <option key={option} value={option}>
-                  {STATUS_LABEL(option)}
+                  {STATUS_LABEL[option]}
                 </option>
               ))}
             </select>
@@ -398,7 +402,7 @@ function MilestoneRow({
           <select value={status} onChange={(event) => setStatus(event.target.value as Status)}>
             {STATUS_OPTIONS.map((option) => (
               <option key={option} value={option}>
-                {STATUS_LABEL(option)}
+                {STATUS_LABEL[option]}
               </option>
             ))}
           </select>
