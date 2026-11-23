@@ -1,4 +1,16 @@
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import type { DashboardSummary } from "@/lib/api";
 
@@ -39,6 +51,7 @@ export function StatusChart({ counts }: { counts: DashboardSummary["counts"] }) 
               ))}
             </Pie>
             <Tooltip />
+            <Legend />
           </PieChart>
         </ResponsiveContainer>
       )}
@@ -65,7 +78,8 @@ export function DeadlinesChart({ deadlines }: { deadlines: DashboardSummary["dea
             <XAxis dataKey="label" tick={{ fontSize: 12 }} />
             <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
             <Tooltip />
-            <Bar dataKey="count" name="Assignments" fill={COLORS.deadlines} radius={[6, 6, 0, 0]} />
+            <Bar dataKey="count" name="Assignments due" fill={COLORS.deadlines} radius={[6, 6, 0, 0]} />
+            <Legend />
           </BarChart>
         </ResponsiveContainer>
       )}
@@ -89,7 +103,8 @@ export function FocusChart({ focus }: { focus: DashboardSummary["focus"] }) {
             <XAxis dataKey="label" tick={{ fontSize: 12 }} />
             <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
             <Tooltip />
-            <Bar dataKey="minutes" name="Minutes" fill={COLORS.focus} radius={[6, 6, 0, 0]} />
+            <Bar dataKey="minutes" name="Focus minutes" fill={COLORS.focus} radius={[6, 6, 0, 0]} />
+            <Legend />
           </BarChart>
         </ResponsiveContainer>
       )}

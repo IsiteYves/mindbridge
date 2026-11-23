@@ -37,11 +37,14 @@ export default function DailyGoalCard() {
     };
   }, []);
 
-  async function markDone(index: number) {
+  async function toggleItem(index: number, done: boolean) {
     setSavingIndex(index);
     setError(null);
     try {
-      const updated = await apiRequest<DailyGoal>(`/daily-goal/today/items/${index}`, { method: "PATCH" });
+      const updated = await apiRequest<DailyGoal>(`/daily-goal/today/items/${index}`, {
+        method: "PATCH",
+        body: { done },
+      });
       setGoal(updated);
     } catch (err) {
       setError(errorMessage(err));
@@ -85,8 +88,8 @@ export default function DailyGoalCard() {
                   <input
                     type="checkbox"
                     checked={item.done}
-                    disabled={item.done || savingIndex === index}
-                    onChange={() => markDone(index)}
+                    disabled={savingIndex === index}
+                    onChange={() => toggleItem(index, !item.done)}
                   />
                   {item.label}
                 </label>

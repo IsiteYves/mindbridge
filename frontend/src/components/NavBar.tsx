@@ -1,13 +1,15 @@
+import { BookOpen, CalendarDays, ClipboardList, CloudDownload, HeartPulse, LayoutDashboard, LogOut, Settings } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
 
 import { endSession } from "@/lib/session";
 
-const LINKS = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/assignments", label: "My assignments" },
-  { to: "/check-in", label: "Daily check-in" },
-  { to: "/plan", label: "Study plan" },
-  { to: "/import", label: "Import from Canvas" },
+const LINKS: { to: string; label: string; icon: LucideIcon }[] = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/assignments", label: "My assignments", icon: ClipboardList },
+  { to: "/check-in", label: "Daily check-in", icon: HeartPulse },
+  { to: "/plan", label: "Study plan", icon: CalendarDays },
+  { to: "/import", label: "Import from Canvas", icon: CloudDownload },
 ];
 
 // Rendered only for signed-in users; logged-out visitors see PublicHeader instead.
@@ -41,6 +43,7 @@ export default function NavBar({ open, onClose }: { open: boolean; onClose: () =
             className={`nav-link${isActive(link.to) ? " active" : ""}`}
             aria-current={isActive(link.to) ? "page" : undefined}
           >
+            <link.icon size={18} strokeWidth={1.75} aria-hidden="true" />
             {link.label}
           </Link>
         ))}
@@ -57,6 +60,7 @@ export default function NavBar({ open, onClose }: { open: boolean; onClose: () =
           className={`nav-link${isActive("/planning-guide") ? " active" : ""}`}
           aria-current={isActive("/planning-guide") ? "page" : undefined}
         >
+          <BookOpen size={18} strokeWidth={1.75} aria-hidden="true" />
           Planning guide
         </Link>
         <Link
@@ -64,9 +68,11 @@ export default function NavBar({ open, onClose }: { open: boolean; onClose: () =
           className={`nav-link${isActive("/settings") ? " active" : ""}`}
           aria-current={isActive("/settings") ? "page" : undefined}
         >
+          <Settings size={18} strokeWidth={1.75} aria-hidden="true" />
           Settings
         </Link>
         <button type="button" className="nav-link" onClick={signOut}>
+          <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />
           Sign out
         </button>
       </div>
