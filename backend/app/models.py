@@ -17,6 +17,7 @@ class User(TimestampMixin, db.Model):
     password_hash = db.Column(String(255), nullable=False)
     failed_login_attempts = db.Column(Integer, nullable=False, default=0, server_default="0")
     locked_until = db.Column(DateTime(timezone=True), nullable=True)
+    pending_email = db.Column(String(255), nullable=True)
 
     assignments = db.relationship("Assignment", back_populates="user", cascade="all, delete-orphan")
     study_plans = db.relationship("StudyPlan", back_populates="user", cascade="all, delete-orphan")
@@ -198,3 +199,12 @@ class DailyGoal(TimestampMixin, db.Model):
     items = db.Column(JSON, nullable=False, default=list)
 
     user = db.relationship("User", back_populates="daily_goals")
+
+class RefreshToken(TimestampMixin, db.Model):
+    __tablename__ = "refresh_tokens"
+
+    id = db.Column(Integer, primary_key=True)
+    user_id = db.Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = db.Column(String(64), nullable=False, unique=True)
+    expires_at = db.Column(DateTime(timezone=True), nullable=False)
+    revoked_at = db.Column(DateTime(timezone=True), nullable=True)

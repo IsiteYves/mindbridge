@@ -6,6 +6,7 @@ from flask import current_app
 SUBJECTS = {
     "signup": "Verify your MindBridge email",
     "reset": "Reset your MindBridge password",
+    "email_change": "Confirm your new MindBridge email",
 }
 
 
