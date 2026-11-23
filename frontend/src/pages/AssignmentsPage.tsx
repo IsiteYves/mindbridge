@@ -28,23 +28,39 @@ export default function AssignmentsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      apiRequest<Page<Assignment>>(`/assignments?state=${view}&limit=${PAGE_SIZE}&offset=${offset}`),
-      apiRequest<Page<Assignment>>("/assignments?state=pending&limit=1"),
-      apiRequest<Page<Assignment>>("/assignments?state=pending&status=in_progress&limit=1"),
-      apiRequest<Page<Assignment>>("/assignments?state=closed&limit=1"),
-      apiRequest<Page<Assignment>>("/assignments?limit=1"),
-    ]).then(
-      ([list, pending, inProgress, closed, all]) => {
+    const countOf = (query: string) =>
+      apiRequest<Page<Assignment>>(`/assignments?${query}&limit=1`).then(
+        (result) => result.total,
+        () => null,
+      );
+    apiRequest<Page<Assignment>>(`/assignments?state=${view}&limit=${PAGE_SIZE}&offset=${offset}`).then(
+      (list) => {
         if (cancelled) return;
+        if (!Array.isArray(list.items)) {
+          setError("The server is out of date. Restart the MindBridge backend and reload.");
+          return;
+        }
         setPage(list);
-        setCounts({ all: all.total, pending: pending.total, inProgress: inProgress.total, closed: closed.total });
         setError(null);
       },
       (err: unknown) => {
         if (!cancelled) setError(errorMessage(err));
       },
     );
+    Promise.all([
+      countOf("state=pending"),
+      countOf("state=pending&status=in_progress"),
+      countOf("state=closed"),
+      countOf(""),
+    ]).then(([pending, inProgress, closed, all]) => {
+      if (cancelled) return;
+      setCounts((current) => ({
+        all: all ?? current.all,
+        pending: pending ?? current.pending,
+        inProgress: inProgress ?? current.inProgress,
+        closed: closed ?? current.closed,
+      }));
+    });
     return () => {
       cancelled = true;
     };
