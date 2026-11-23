@@ -13,55 +13,54 @@
 \usepackage{tikz}
 \usetikzlibrary{calc,positioning}
 
-% ---------- ALU-inspired palette ----------
-\definecolor{ALUBlue}{HTML}{002E6D}
-\definecolor{ALUBlueDark}{HTML}{001F49}
-\definecolor{ALUBlueLight}{HTML}{EAF1FB}
-\definecolor{ALUBlueLine}{HTML}{BFD0EA}
-\definecolor{ALUText}{HTML}{1E2A38}
-\definecolor{ALUMuted}{HTML}{5C6B7A}
-\definecolor{ALUWhite}{HTML}{FFFFFF}
-\definecolor{ALUAccent}{HTML}{D9E6F7}
+% ---------- MindBridge Forest/Teal Green Palette ----------
+\definecolor{MBGreen}{HTML}{0B5D4B}        % Deep forest/teal green (matches UI buttons/badges)
+\definecolor{MBGreenDark}{HTML}{074235}    % Darker green accent
+\definecolor{MBGreenLight}{HTML}{E8F3F0}   % Soft mint tint for callout boxes
+\definecolor{MBGreenLine}{HTML}{9CC5BA}    % Muted sage border
+\definecolor{MBText}{HTML}{182421}         % Dark charcoal-green text for high contrast
+\definecolor{MBMuted}{HTML}{526660}
+\definecolor{MBWhite}{HTML}{FFFFFF}
 
 % ---------- Theme ----------
 \usetheme{Simple}
 \usecolorstyle{Default}
 \usebackgroundstyle{Default}
 
-\colorlet{backgroundcolor}{ALUWhite}
-\colorlet{framecolor}{ALUBlueLine}
+\colorlet{backgroundcolor}{MBWhite}
+\colorlet{framecolor}{MBGreenLine}
 \colorlet{titlefgcolor}{white}
-\colorlet{titlebgcolor}{ALUBlue}
-\colorlet{blocktitlebgcolor}{ALUBlue}
+\colorlet{titlebgcolor}{MBGreen}
+\colorlet{blocktitlebgcolor}{MBGreen}
 \colorlet{blocktitlefgcolor}{white}
 \colorlet{blockbodybgcolor}{white}
-\colorlet{blockbodyfgcolor}{ALUText}
+\colorlet{blockbodyfgcolor}{MBText}
 
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{0.12em}
-\linespread{0.98}
-\setlist[itemize]{leftmargin=1.05em,itemsep=0.02em,topsep=0.02em,parsep=0pt,partopsep=0pt}
+\setlength{\parskip}{0.08em}
+\linespread{0.96}
+\setlist[itemize]{leftmargin=1.05em,itemsep=0.01em,topsep=0.01em,parsep=0pt,partopsep=0pt}
 
 % ---------- Block appearance ----------
-\defineblockstyle{ALUBlock}{
+\defineblockstyle{MBBlock}{
     titlewidthscale=1, bodywidthscale=1, roundedcorners=16,
     titleleft, titleoffsetx=0mm, titleoffsety=0mm,
-    bodyoffsetx=0mm, bodyoffsety=3.5mm,
-    bodyverticalshift=3.5mm, linewidth=1.0mm
+    bodyoffsetx=0mm, bodyoffsety=2.5mm,
+    bodyverticalshift=2.5mm, linewidth=1.0mm
 }{
-    \draw[rounded corners=16pt, line width=1.1mm, color=ALUBlueLine, fill=white]
+    \draw[rounded corners=16pt, line width=1.1mm, color=MBGreenLine, fill=white]
       (blockbody.south west) rectangle (blockbody.north east);
     \ifBlockHasTitle
-      \draw[rounded corners=16pt, line width=0mm, fill=ALUBlue]
+      \draw[rounded corners=16pt, line width=0mm, fill=MBGreen]
       (blocktitle.south west) rectangle (blocktitle.north east);
     \fi
 }
-\useblockstyle{ALUBlock}
+\useblockstyle{MBBlock}
 
 % ---------- Helpers ----------
 \newcommand{\takeawaybox}[1]{%
   \begin{center}
-  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
+  \fcolorbox{MBGreenLine}{MBGreenLight}{
     \parbox{0.94\linewidth}{\centering\bfseries\Large #1}
   }
   \end{center}
@@ -69,29 +68,29 @@
 
 \newcommand{\posterimageplaceholder}[2][0.95\linewidth]{%
   \begin{center}
-  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
+  \fcolorbox{MBGreenLine}{MBGreenLight}{
     \parbox[c][6.6cm][c]{#1}{\centering\bfseries\Large #2\\[0.35em]\normalsize Replace with a polished figure, screenshot, architecture diagram, chart, or hardware photo}
   }
   \end{center}
 }
 
 \newcommand{\metricbox}[2]{%
-  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
+  \fcolorbox{MBGreenLine}{MBGreenLight}{
     \parbox[c][2.9cm][c]{0.29\linewidth}{\centering\bfseries\LARGE #1\\[0.18em]\normalsize #2}
   }
 }
 
 \newcommand{\projectmeta}[4]{%
   \begin{tabular}{>{\bfseries}p{0.24\linewidth}p{0.69\linewidth}}
-    Team & #1\\[0.18em]
-    Programme & #2\\[0.18em]
-    Supervisors & #3\\[0.18em]
+    Team & #1\\[0.12em]
+    Programme & #2\\[0.12em]
+    Supervisors & #3\\[0.12em]
     Demo / QR & #4
   \end{tabular}
 }
 
-% ---------- Title ----------
-\title{MindBridge: A Technological Academic Workload Deconstruction and Burnout Mitigation Platform}
+% ---------- Title (Wrapped cleanly so it never clips on the right) ----------
+\title{\parbox{0.72\linewidth}{\centering MindBridge: Academic Workload Deconstruction\\and Burnout Mitigation Platform}}
 \author{Tendai Lynn Mtakiwa \textbar\ Maunice Akaliza \textbar\ Yves Isite \textbar\ Orla Ishimwe \textbar\ Esther Konde \textbar\ Joel Hakizimana \textbar\ Muuse Muuse}
 \institute{African Leadership University \textbar\ BSc. in Software Engineering Foundations Project \textbar\ Group Name: MindBridge}
 \titlegraphic{\includegraphics[height=3.5cm]{alu-logo-white-full.png}}
@@ -99,7 +98,7 @@
 \begin{document}
 \maketitle
 
-\vspace{0.1cm}
+\vspace{0.05cm}
 
 \begin{columns}
 
@@ -108,30 +107,18 @@
 
 % --- SECTION 1: MAUNICE AKALIZA ---
 \block{1. Problem, Context, and Users}{
-\takeawaybox{Start with the engineering problem and why solving it matters.}
-
-\textbf{Use 3--4 lines only.} State the context, the affected users, the practical pain point, and the consequence of leaving it unsolved.
-
 \begin{itemize}
-  \item What environment are you designing for?
-  \item What exactly is broken, slow, costly, unsafe, or inaccessible?
-  \item Who is most affected, and under what constraints?
-  \item Why is this problem worth solving now?
+  \item \textbf{Context \& Stress:} ALU students face heavy, overlapping deadlines; an initial survey found 83\% experienced moderate to very high academic stress.
+  \item \textbf{Current Gap:} Canvas lists due dates but does not break assignments into manageable tasks.
+  \item \textbf{Solution Direction:} MindBridge helps students organize assignments and plan their workload.
 \end{itemize}
-
-\textbf{Recommended pattern:} In \underline{context}, \underline{users} struggle with \underline{problem}. Existing approaches fall short because \underline{gap}. We designed \underline{solution} to improve \underline{outcome}.
 }
 
 % --- SECTION 2: MAUNICE AKALIZA ---
 \block{2. Objectives and Scope}{
-Keep this section tight and measurable.
-
 \begin{itemize}
-  \item \textbf{Aim:} Build and evaluate a system for \dots
-  \item \textbf{Objective 1:} Design the workflow / architecture.
-  \item \textbf{Objective 2:} Implement the prototype or model.
-  \item \textbf{Objective 3:} Test usability, performance, or reliability.
-  \item \textbf{Scope:} What is included now, and what is not?
+  \item \textbf{Objective 1:} Build MindBridge, a web platform that simplifies workload management and reduces last-minute pressure.
+  \item \textbf{Scope:} Imports Canvas assignments, manages deadlines, and breaks rubrics into dated milestones for ALU students.
 \end{itemize}
 }
 
@@ -143,9 +130,9 @@ Keep this section tight and measurable.
   {Foundations Project Facilitators \& Faculty Mentors}
   {\texttt{github.com/IsiteYves/mindbridge}}
 
-\vspace{0.5em}
+\vspace{0.25em}
 \begin{center}
-\qrcode[height=4.0cm]{https://github.com/IsiteYves/mindbridge}
+\qrcode[height=3.4cm]{https://github.com/IsiteYves/mindbridge}
 \end{center}
 }
 
@@ -166,25 +153,43 @@ Posters are stronger when they show real engineering trade-offs.
 
 % --- SECTION 5: ORLA, JOEL & ESTHER ---
 \block{5. Proposed Solution and System Overview}{
-\takeawaybox{The centre column should be the visual anchor of the whole poster.}
+\takeawaybox{End-to-End Flow: Connect Canvas $\rightarrow$ Break Rubrics into Milestones $\rightarrow$ Balance Daily Workload}
 
 \begin{minipage}[t]{0.48\linewidth}
 \textbf{Solution summary}
 
-Describe the end-to-end flow in one short paragraph. Focus on what enters the system, what happens inside, and what the user gets out of it.
+MindBridge helps ALU students turn a heavy assignment load into a plan they can finish. A student connects Canvas once, and MindBridge imports the assignments and breaks each rubric into dated milestones that the student can edit and reorder. A workload heatmap shows where work piles up, a focus timer and daily goal keep each day small, and reminder emails arrive before deadlines. MindBridge supports planning; it does not diagnose or treat mental health.
 \end{minipage}
 \hfill
 \begin{minipage}[t]{0.48\linewidth}
-\textbf{Architecture checklist}
+\textbf{System architecture}
 \begin{itemize}
-  \item Interface / frontend
-  \item Backend / services / logic
-  \item Data store / APIs / models
-  \item Devices, integrations, or deployment
+  \item \textbf{Frontend:} React 19, TypeScript, Vite, \& React Router UI
+  \item \textbf{Backend:} Flask 3.1 REST API, SQLAlchemy ORM, PyJWT auth, \& Fernet token encryption
+  \item \textbf{Database \& AI:} PostgreSQL database \& optional LangGraph plan-review agent
+  \item \textbf{Integrations:} Canvas LMS REST API (with manual import fallback) \& email reminders
 \end{itemize}
 \end{minipage}
 
-\posterimageplaceholder[0.97\linewidth]{Main system architecture, UI workflow, hardware setup, or polished prototype figure}
+\vspace{0.4em}
+\begin{center}
+\begin{minipage}[t]{0.23\linewidth}\centering
+  \includegraphics[width=\linewidth]{figures/ui-canvas.png}\\[0.2em]
+  {\small\textbf{1. Connect Canvas once}}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.23\linewidth}\centering
+  \includegraphics[width=\linewidth]{figures/ui-assignments.png}\\[0.2em]
+  {\small\textbf{2. Import assignments}}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.23\linewidth}\centering
+  \includegraphics[width=\linewidth]{figures/ui-milestones.png}\\[0.2em]
+  {\small\textbf{3. Rubric to milestones}}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.23\linewidth}\centering
+  \includegraphics[width=\linewidth]{figures/ui-heatmap.png}\\[0.2em]
+  {\small\textbf{4. Track workload heatmap}}
+\end{minipage}
+\end{center}
 }
 
 % --- SECTION 6: YVES ISITE ---
@@ -240,7 +245,7 @@ Iterate & what changed after evidence or testing \\
   \item Include one user or field insight if relevant
   \item Compare against a baseline where possible
 \end{itemize}
-\begin{center}\fcolorbox{ALUBlueLine}{ALUBlueLight}{\parbox[c][3.7cm][c]{0.95\linewidth}{\centering\bfseries\Large Chart, benchmark, confusion matrix, or evaluation table}}\end{center}
+\begin{center}\fcolorbox{MBGreenLine}{MBGreenLight}{\parbox[c][3.7cm][c]{0.95\linewidth}{\centering\bfseries\Large Chart, benchmark, confusion matrix, or evaluation table}}\end{center}
 \end{minipage}
 \hfill
 \begin{minipage}[t]{0.48\linewidth}
@@ -249,7 +254,7 @@ Iterate & what changed after evidence or testing \\
   \item Which workflow is fully working?
   \item What remains simulated or partial?
 \end{itemize}
-\begin{center}\fcolorbox{ALUBlueLine}{ALUBlueLight}{\parbox[c][3.7cm][c]{0.95\linewidth}{\centering\bfseries\Large Demo storyboard, product screenshot, or device photo}}\end{center}
+\begin{center}\fcolorbox{MBGreenLine}{MBGreenLight}{\parbox[c][3.7cm][c]{0.95\linewidth}{\centering\bfseries\Large Demo storyboard, product screenshot, or device photo}}\end{center}
 \end{minipage}
 }
 
