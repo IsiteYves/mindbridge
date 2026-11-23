@@ -72,12 +72,15 @@ def list_assignments():
     state = request.args.get("state", "all")
     sort = request.args.get("sort", "deadline_asc")
     query_text = (request.args.get("q") or "").strip()[:MAX_QUERY_LENGTH]
+    status = request.args.get("status")
     start, start_ok = _list_date("from")
     end, end_ok = _list_date("to")
     if limit is None or offset is None:
         return jsonify(error=f"limit must be 1 to {LIST_MAX_LIMIT} and offset must be 0 or more"), 400
     if state not in LIST_STATES or sort not in LIST_SORTS or not start_ok or not end_ok:
         return jsonify(error="state, sort, from or to is not valid"), 400
+    if status is not None and status not in STATUSES:
+        return jsonify(error=f"status must be one of {', '.join(STATUSES)}"), 400
 
     now = dt.datetime.now(dt.timezone.utc)
     query = db.session.query(Assignment).filter(Assignment.user_id == g.current_user.id)
@@ -85,6 +88,8 @@ def list_assignments():
         query = query.filter(and_(Assignment.status != "done", Assignment.deadline > now))
     elif state == "closed":
         query = query.filter(or_(Assignment.status == "done", Assignment.deadline.is_(None), Assignment.deadline <= now))
+    if status is not None:
+        query = query.filter(Assignment.status == status)
     if query_text:
         query = query.filter(
             or_(

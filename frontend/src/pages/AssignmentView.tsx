@@ -98,6 +98,20 @@ export default function AssignmentView({ id }: { id: string }) {
     }
   }
 
+  async function changeStatus(next: Status) {
+    try {
+      const updated = await apiRequest<Assignment>(`/assignments/${id}`, { method: "PATCH", body: { status: next } });
+      setAssignment(updated);
+      toast.success("Status updated.");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  }
+
+  function refreshAssignment() {
+    apiRequest<Assignment>(`/assignments/${id}`).then(setAssignment, () => undefined);
+  }
+
   function updateCriterion(index: number, field: keyof CriterionDraft, value: string) {
     setCriteria(criteria.map((draft, i) => (i === index ? { ...draft, [field]: value } : draft)));
   }
@@ -125,6 +139,18 @@ export default function AssignmentView({ id }: { id: string }) {
           <p className="muted">
             {assignment.course} · due {formatDate(assignment.deadline)}
           </p>
+        )}
+        {assignment && (
+          <label className="field">
+            Status
+            <select value={assignment.status} onChange={(event) => changeStatus(event.target.value as Status)}>
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {STATUS_LABEL(option)}
+                </option>
+              ))}
+            </select>
+          </label>
         )}
         {error && <p className="error">{error}</p>}
         {assignment && !pending && (
@@ -247,7 +273,10 @@ export default function AssignmentView({ id }: { id: string }) {
               deadline={assignment?.deadline ?? null}
               onMoveUp={() => reorder(index, index - 1)}
               onMoveDown={() => reorder(index, index + 1)}
-              onSaved={(saved) => setMilestones((current) => current.map((m) => (m.id === saved.id ? saved : m)))}
+              onSaved={(saved) => {
+                setMilestones((current) => current.map((m) => (m.id === saved.id ? saved : m)));
+                refreshAssignment();
+              }}
               onDeleted={(removedId) =>
                 setMilestones((current) => current.filter((m) => m.id !== removedId))
               }

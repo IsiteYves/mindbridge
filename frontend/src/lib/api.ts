@@ -89,7 +89,11 @@ export type FocusSession = {
   started_at: string;
   ended_at: string | null;
   completed: boolean;
+  actual_minutes: number | null;
+  remaining_seconds: number | null;
 };
+
+export type Page<T> = { items: T[]; total: number; limit: number; offset: number };
 
 export const REMINDER_OFFSETS = [5, 2, 1, 0] as const;
 export type ReminderOffset = (typeof REMINDER_OFFSETS)[number];

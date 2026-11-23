@@ -1,51 +1,59 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router";
 
+import { AssignmentList, Pager } from "@/components/AssignmentList";
 import DailyGoalCard from "@/components/DailyGoalCard";
 import FocusTimerCard from "@/components/FocusTimerCard";
 import WorkloadHeatmap from "@/components/WorkloadHeatmap";
-import { Assignment, Status, apiRequest, errorMessage } from "@/lib/api";
-import { isPending } from "@/lib/assignments";
-import { formatDate, fromLocalInput } from "@/lib/dates";
+import { type Assignment, apiRequest, errorMessage, type Page } from "@/lib/api";
+import { fromLocalInput } from "@/lib/dates";
 import { toast } from "@/lib/toast";
 
-const STATUS_LABEL = (status: Status) => status.replace("_", " ");
+const PAGE_SIZE = 15;
 
-function byDeadline(a: Assignment, b: Assignment) {
-  if (!a.deadline && !b.deadline) return 0;
-  if (!a.deadline) return 1;
-  if (!b.deadline) return -1;
-  return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
-}
+type View = "pending" | "closed";
+
+type Counts = { all: number; pending: number; inProgress: number; closed: number };
+
+const NO_COUNTS: Counts = { all: 0, pending: 0, inProgress: 0, closed: 0 };
 
 export default function AssignmentsPage() {
-  const [assignments, setAssignments] = useState<Assignment[] | null>(null);
+  const [view, setView] = useState<View>("pending");
+  const [offset, setOffset] = useState(0);
+  const [refresh, setRefresh] = useState(0);
+  const [page, setPage] = useState<Page<Assignment> | null>(null);
+  const [counts, setCounts] = useState<Counts>(NO_COUNTS);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [showClosed, setShowClosed] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      setAssignments(await apiRequest<Assignment[]>("/assignments"));
-    } catch (err) {
-      setError(errorMessage(err));
-    }
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    apiRequest<Assignment[]>("/assignments").then(
-      (list) => {
-        if (!cancelled) setAssignments(list);
+    Promise.all([
+      apiRequest<Page<Assignment>>(`/assignments?state=${view}&limit=${PAGE_SIZE}&offset=${offset}`),
+      apiRequest<Page<Assignment>>("/assignments?state=pending&limit=1"),
+      apiRequest<Page<Assignment>>("/assignments?state=pending&status=in_progress&limit=1"),
+      apiRequest<Page<Assignment>>("/assignments?state=closed&limit=1"),
+      apiRequest<Page<Assignment>>("/assignments?limit=1"),
+    ]).then(
+      ([list, pending, inProgress, closed, all]) => {
+        if (cancelled) return;
+        setPage(list);
+        setCounts({ all: all.total, pending: pending.total, inProgress: inProgress.total, closed: closed.total });
+        setError(null);
       },
-      (err) => {
+      (err: unknown) => {
         if (!cancelled) setError(errorMessage(err));
       },
     );
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [view, offset, refresh]);
+
+  function switchView() {
+    setView((current) => (current === "pending" ? "closed" : "pending"));
+    setOffset(0);
+  }
 
   async function addAssignment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,18 +71,13 @@ export default function AssignmentsPage() {
       });
       event.currentTarget.reset();
       toast.success("Assignment added.");
-      await load();
+      setRefresh((value) => value + 1);
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
       setBusy(false);
     }
   }
-
-  const sorted = assignments ? [...assignments].sort(byDeadline) : [];
-  const pendingList = sorted.filter((a) => isPending(a));
-  const closedList = sorted.filter((a) => !isPending(a));
-  const visibleList = showClosed ? sorted : pendingList;
 
   return (
     <>
@@ -98,22 +101,22 @@ export default function AssignmentsPage() {
       <section className="stats-grid" aria-label="Summary">
         <article className="stat">
           <p className="stat-label">Total</p>
-          <p className="stat-value">{assignments?.length ?? "—"}</p>
+          <p className="stat-value">{counts.all}</p>
           <p className="stat-detail">Tracked assignments</p>
         </article>
         <article className="stat todo">
           <p className="stat-label">Pending</p>
-          <p className="stat-value">{pendingList.length}</p>
+          <p className="stat-value">{counts.pending}</p>
           <p className="stat-detail">Due ahead, not submitted</p>
         </article>
         <article className="stat progress">
           <p className="stat-label">In progress</p>
-          <p className="stat-value">{pendingList.filter((a) => a.status === "in_progress").length}</p>
+          <p className="stat-value">{counts.inProgress}</p>
           <p className="stat-detail">Being worked on</p>
         </article>
         <article className="stat done">
           <p className="stat-label">Closed</p>
-          <p className="stat-value">{closedList.length}</p>
+          <p className="stat-value">{counts.closed}</p>
           <p className="stat-detail">Submitted or past deadline</p>
         </article>
       </section>
@@ -128,45 +131,37 @@ export default function AssignmentsPage() {
 
       <section className="card">
         <div className="card-title">
-          <h2>Upcoming</h2>
-          <span className="muted">Pending, sorted by deadline</span>
+          <h2>{view === "pending" ? "Upcoming" : "Closed"}</h2>
+          <span className="muted">
+            {view === "pending" ? "Pending, sorted by deadline" : "Submitted or past deadline"}
+          </span>
           <Link to="/assignments/search" className="button secondary compact">
             Search all
           </Link>
         </div>
-        {assignments && closedList.length > 0 && (
-          <button type="button" className="button secondary compact" onClick={() => setShowClosed((v) => !v)}>
-            {showClosed ? "Hide closed" : `Show closed (${closedList.length})`}
-          </button>
-        )}
-        {assignments === null && !error && <p className="muted">Loading…</p>}
-        {assignments && assignments.length === 0 && (
+        <button type="button" className="button secondary compact" onClick={switchView}>
+          {view === "pending" ? `Show closed (${counts.closed})` : "Show pending"}
+        </button>
+        {page === null && !error && <p className="muted">Loading…</p>}
+        {page && counts.all === 0 && (
           <div className="empty-state">
             <p>No assignments yet.</p>
             <p className="muted">Import from Canvas or add one below.</p>
           </div>
         )}
-        {visibleList.length > 0 && (
-          <ul className="list assignment-list">
-            {visibleList.map((assignment) => (
-              <li key={assignment.id}>
-                <div>
-                  <Link to={`/assignments/${assignment.id}`} className="list-title">
-                    {assignment.title}
-                  </Link>
-                  <p className="muted">
-                    {assignment.course} · {formatDate(assignment.deadline)}
-                  </p>
-                </div>
-                <div className="assignment-actions">
-                  <span className={`status-text status-${assignment.status}`}>{STATUS_LABEL(assignment.status)}</span>
-                  <Link to={`/assignments/${assignment.id}`} className="button secondary compact">
-                    View
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
+        {page && page.items.length === 0 && counts.all > 0 && (
+          <p className="empty-state">Nothing here yet.</p>
+        )}
+        {page && page.items.length > 0 && (
+          <>
+            <AssignmentList
+              items={page.items}
+              badge={(a) => (
+                <span className={`status-text status-${a.status}`}>{a.status.replace("_", " ")}</span>
+              )}
+            />
+            <Pager offset={page.offset} limit={page.limit} total={page.total} onChange={setOffset} />
+          </>
         )}
       </section>
 

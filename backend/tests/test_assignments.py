@@ -179,3 +179,14 @@ def test_the_list_filters_by_name_and_state_on_the_server(client, make_user_head
 def test_the_list_rejects_an_unknown_state(client, make_user_headers):
     headers = make_user_headers("student1")
     assert client.get(f"{BASE}?state=whatever", headers=headers).status_code == 400
+
+
+def test_the_list_filters_by_status(client, make_user_headers):
+    headers = make_user_headers("student1")
+    started = create(client, headers, title="Started", deadline="2026-12-01T00:00:00+00:00").get_json()
+    client.patch(f"{BASE}/{started['id']}", json={"status": "in_progress"}, headers=headers)
+    create(client, headers, title="Waiting", deadline="2026-12-02T00:00:00+00:00")
+
+    listed = client.get(f"{BASE}?status=in_progress", headers=headers).get_json()
+    assert [a["title"] for a in listed["items"]] == ["Started"]
+    assert client.get(f"{BASE}?status=whatever", headers=headers).status_code == 400
