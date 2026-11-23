@@ -28,9 +28,16 @@ export type Milestone = {
   description: string | null;
   target_date: string;
   status: Status;
+  position?: number;
+  weight?: number | null;
 };
 
-export type RubricCriterion = { title: string; description?: string | null; points?: number | null };
+export type RubricCriterion = {
+  title: string;
+  description?: string | null;
+  points?: number | null;
+  weight?: number | null;
+};
 
 export type ImportedAssignment = Assignment;
 
@@ -50,6 +57,52 @@ export type CanvasConnectionStatus = {
 };
 
 export type CanvasSyncResult = ImportResult & { connection: CanvasConnectionStatus };
+
+export type CurrentUser = { id: number; name: string; email: string };
+
+export type DailyGoalItem = { label: string; done: boolean };
+
+export type DailyGoal = {
+  id: number;
+  goal_date: string;
+  target_count: number;
+  items: DailyGoalItem[];
+  done_count: number;
+  total_count: number;
+};
+
+export type FocusSession = {
+  id: number;
+  milestone_id: number | null;
+  planned_minutes: number;
+  started_at: string;
+  ended_at: string | null;
+  completed: boolean;
+};
+
+export const REMINDER_OFFSETS = [5, 2, 1, 0] as const;
+export type ReminderOffset = (typeof REMINDER_OFFSETS)[number];
+
+export type ReminderPreference = { offset_days: ReminderOffset; enabled: boolean };
+
+export type NotificationItem = {
+  id: number;
+  assignment_id: number;
+  milestone_id: number | null;
+  kind: string;
+  offset_days: number | null;
+  fired_for_date: string;
+  sent_at: string | null;
+};
+
+export type AgentFinding = { severity: string; milestone_id: number | null; message: string };
+
+export type AgentReview = {
+  generated_at: string;
+  summary: string;
+  findings: AgentFinding[];
+  replan_suggestion: { milestone_ids: number[]; new_target_dates: string[] } | null;
+};
 export class ApiError extends Error {
   status: number;
 
