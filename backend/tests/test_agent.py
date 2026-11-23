@@ -63,13 +63,15 @@ def test_a_well_balanced_plan_with_nothing_overdue_gets_a_reassuring_summary(app
     assert "generated_at" in body
 
 
-def test_an_uncovered_heavily_weighted_criterion_is_flagged(app, client, make_user_headers, monkeypatch):
+def test_a_heavy_criterion_whose_milestone_has_a_different_weight_is_flagged(app, client, make_user_headers, monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     headers = make_user_headers("student1")
     assignment_id = make_assignment(client, headers)
     payload = {"criteria": [{"title": "Stakeholder research", "weight": 40}], "replace": False}
     client.post(f"{ASSIGNMENTS}/{assignment_id}/milestones/from-rubric", json=payload, headers=headers)
-    add_milestone(client, headers, assignment_id, title="Unrelated writing task")
+    # from-rubric names the milestone after its criterion; give it a clearly different weight.
+    milestone_id = client.get(f"{ASSIGNMENTS}/{assignment_id}/milestones", headers=headers).get_json()[0]["id"]
+    client.patch(f"/api/v1/milestones/{milestone_id}", json={"weight": 10}, headers=headers)
 
     body = review(client, headers, assignment_id).get_json()
     assert any("Stakeholder research" in f["message"] for f in body["findings"])

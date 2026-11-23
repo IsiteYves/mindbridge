@@ -51,11 +51,9 @@ def test_a_milestone_and_a_deadline_on_different_days_each_appear(client, make_u
 
 def test_two_items_on_the_same_day_are_counted_together(client, make_user_headers):
     headers = make_user_headers("student1")
-    a1 = make_assignment(client, headers, 10)
-    a2 = make_assignment(client, headers, 20)
-    # Put both assignments' only milestone on the same day.
-    add_milestone(client, headers, a1, 7)
-    add_milestone(client, headers, a2, 7)
+    # Two deadlines on the same day: they share one day and are both counted.
+    make_assignment(client, headers, 7)
+    make_assignment(client, headers, 7)
 
     days = client.get(WORKLOAD, headers=headers).get_json()["days"]
     assert len(days) == 1
@@ -72,7 +70,8 @@ def test_done_milestones_and_done_assignments_are_excluded(client, make_user_hea
     add_milestone(client, headers, open_assignment, 15)
 
     days = client.get(WORKLOAD, headers=headers).get_json()["days"]
-    assert len(days) == 1  # only the open milestone's day
+    items = [item for day in days for item in day["items"]]
+    assert {item["assignment_id"] for item in items} == {open_assignment}
 
 
 def test_items_outside_the_requested_range_are_excluded(client, make_user_headers):
@@ -99,7 +98,8 @@ def test_a_custom_start_and_end_narrows_the_range(client, make_user_headers):
 
 def test_the_count_stays_true_even_once_the_items_list_is_capped(client, make_user_headers):
     headers = make_user_headers("student1")
-    assignment_id = make_assignment(client, headers, 30)
+    # Deadline is outside the window so only the 13 milestones are counted.
+    assignment_id = make_assignment(client, headers, 200)
     for _ in range(13):
         add_milestone(client, headers, assignment_id, 10)
 
@@ -145,9 +145,9 @@ def test_assignment_id_filters_to_just_that_assignments_items(client, make_user_
 
     response = client.get(WORKLOAD, query_string={"assignment_id": a1}, headers=headers)
     days = response.get_json()["days"]
-    assert len(days) == 1
-    assert days[0]["count"] == 1  # only a1's milestone, not a2's on the same day
-    assert days[0]["items"][0]["assignment_id"] == a1
+    items = [item for day in days for item in day["items"]]
+    assert {item["assignment_id"] for item in items} == {a1}  # a2's items are excluded
+    assert sum(day["count"] for day in days) == 2  # a1's milestone and a1's deadline
 
 
 def test_assignment_id_for_someone_elses_assignment_returns_nothing_not_an_error(client, make_user_headers):

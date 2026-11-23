@@ -9,6 +9,6 @@ flask-cors==6.0.5
 cryptography==43.0.3
 # Plan-review agent (app/services/agent/). Exact versions could not be verified
 # against PyPI from this environment; confirm these are current before installing.
-langgraph==0.2.60
-langchain-core==0.3.25
-langchain-anthropic==0.3.3
+langgraph==1.2.24
+langchain-core==1.8.4
+langchain-anthropic==1.7.12
