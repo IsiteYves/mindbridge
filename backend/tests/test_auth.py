@@ -402,3 +402,25 @@ def test_protected_route_rejects_token_for_deleted_user(app, secure_client):
     response = secure_client.get("/secure", headers=bearer(token))
 
     assert response.status_code == 401
+
+
+def test_a_failed_email_does_not_leave_an_account_behind(app, client, monkeypatch):
+    from app.extensions import db
+    from app.models import User
+    from app.services.mailer import MailError
+
+    def fail(*args, **kwargs):
+        raise MailError("We could not send the email. Try again in a moment.")
+
+    monkeypatch.setitem(app.config, "MAILER", fail)
+    response = register(client)
+    assert response.status_code == 503
+    with app.app_context():
+        assert db.session.query(User).filter_by(email=EMAIL).first() is None
+
+
+def test_registering_an_unverified_existing_email_says_so(client):
+    assert register(client).status_code == 201
+    response = register(client)
+    assert response.status_code == 409
+    assert response.get_json()["unverified"] is True

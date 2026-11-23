@@ -108,8 +108,9 @@ def register():
     if password_error:
         return jsonify(error=password_error), 400
 
-    if _find_user(email) is not None:
-        return jsonify(error="An account with this email already exists"), 409
+    existing = _find_user(email)
+    if existing is not None:
+        return jsonify(error="An account with this email already exists", unverified=not existing.email_verified), 409
 
     user = User(name=name, email=email, password_hash=generate_password_hash(data["password"]), email_verified=False)
     db.session.add(user)
@@ -125,8 +126,12 @@ def register():
     )
 
     code = issue_code(user, "signup")
+    try:
+        send_code(email, "signup", code)
+    except MailError:
+        db.session.rollback()
+        raise
     db.session.commit()
-    send_code(email, "signup", code)
     return jsonify(email=email), 201
 
 
