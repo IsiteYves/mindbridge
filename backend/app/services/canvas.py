@@ -28,7 +28,7 @@ class CanvasClient:
         ]
 
     def list_assignments(self, course_id):
-        items = self._get_all(f"/api/v1/courses/{course_id}/assignments", {"include[]": "rubric"})
+        items = self._get_all(f"/api/v1/courses/{course_id}/assignments", {"include[]": ["rubric", "submission"]})
         return [_normalize(item, course_id) for item in items]
 
     def _get_all(self, path, params):
@@ -68,12 +68,22 @@ class CanvasClient:
         return url
 
 
+SUBMITTED_STATES = {"submitted", "graded", "pending_review"}
+
+
+def _is_submitted(submission):
+    if not isinstance(submission, dict):
+        return False
+    return submission.get("workflow_state") in SUBMITTED_STATES or submission.get("submitted_at") is not None
+
+
 def _normalize(item, course_id):
     return {
         "canvas_id": str(item["id"]),
         "course_id": str(course_id),
         "title": (item.get("name") or "Untitled assignment")[:MAX_TITLE_LENGTH],
         "deadline": item.get("due_at"),
+        "submitted": _is_submitted(item.get("submission")),
         "rubric": [
             {
                 "title": (criterion.get("description") or "Criterion")[:MAX_TITLE_LENGTH],

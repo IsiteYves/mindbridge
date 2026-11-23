@@ -90,3 +90,11 @@ def test_generated_criteria_are_saved_on_the_assignment(client, make_user_header
         {"title": "Problem statement", "description": None, "weight": None},
         {"title": "Method", "description": "Describe the design", "weight": None},
     ]
+
+
+def test_a_submitted_assignment_cannot_be_planned(client, make_user_headers):
+    headers = make_user_headers("student1")
+    future = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=10)).isoformat()
+    assignment_id = make_assignment(client, headers, future)
+    client.patch(f"/api/v1/assignments/{assignment_id}", json={"status": "done"}, headers=headers)
+    assert generate(client, headers, assignment_id).status_code == 400

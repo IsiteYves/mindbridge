@@ -37,3 +37,11 @@ def parse_deadline(value):
 
 def iso_utc(value):
     return value.astimezone(dt.timezone.utc).isoformat() if value else None
+
+
+def is_pending(assignment, now=None):
+    now = now or dt.datetime.now(dt.timezone.utc)
+    return assignment.status != "done" and assignment.deadline is not None and assignment.deadline > now
+
+
+NOT_PENDING_MESSAGE = "This assignment is not pending: it is submitted, or its deadline has passed."

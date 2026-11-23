@@ -74,7 +74,7 @@ def test_list_assignments_follows_next_links_on_the_same_host():
     items = client.list_assignments("7")
 
     assert [item["canvas_id"] for item in items] == ["1", "2"]
-    assert session.calls[0][1]["include[]"] == "rubric"
+    assert session.calls[0][1]["include[]"] == ["rubric", "submission"]
     assert session.calls[1][1] is None
 
 
@@ -133,3 +133,17 @@ def test_network_failure_maps_to_502():
         client.list_courses()
 
     assert error.value.status_code == 502
+
+
+def test_a_submitted_item_is_marked_submitted():
+    from app.services.canvas import _normalize
+
+    item = {"id": 5, "name": "Essay", "due_at": None, "submission": {"workflow_state": "graded"}}
+    assert _normalize(item, 1)["submitted"] is True
+
+
+def test_an_unsubmitted_item_is_not_marked_submitted():
+    from app.services.canvas import _normalize
+
+    item = {"id": 6, "name": "Essay", "due_at": None, "submission": {"workflow_state": "unsubmitted"}}
+    assert _normalize(item, 1)["submitted"] is False

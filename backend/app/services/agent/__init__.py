@@ -65,10 +65,14 @@ def review_plan(assignment, milestones, now: dt.datetime | None = None) -> dict:
     )
     result = run(initial_state)
 
+    summary = result["summary"]
+    if not milestones:
+        summary = "No milestones yet. Generate them from the rubric to get a review."
+
     suggestion = result.get("replan_suggestion")
     return {
         "generated_at": iso_utc(result["now"]),
-        "summary": result["summary"],
+        "summary": summary,
         "findings": result["findings"],
         "replan_suggestion": (
             {

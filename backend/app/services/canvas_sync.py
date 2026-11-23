@@ -1,3 +1,5 @@
+import datetime as dt
+
 from sqlalchemy.exc import IntegrityError
 
 from app.api.common import parse_deadline
@@ -20,7 +22,7 @@ def sync_courses(user, client, course_ids):
     }
     skipped, imported, newly_created, per_course = [], [], [], []
     for course_id in wanted:
-        stats = {"id": course_id, "name": course_names[course_id], "found": 0, "created": 0, "updated": 0, "skipped": 0}
+        stats = {"id": course_id, "name": course_names[course_id], "found": 0, "created": 0, "updated": 0, "skipped": 0, "pending": 0}
         per_course.append(stats)
         for item in client.list_assignments(course_id):
             stats["found"] += 1
@@ -43,6 +45,13 @@ def sync_courses(user, client, course_ids):
             assignment.title = item["title"]
             assignment.deadline = deadline
             assignment.rubric = item["rubric"]
+            submitted = bool(item.get("submitted"))
+            if submitted:
+                assignment.status = "done"
+            elif assignment.status == "done":
+                assignment.status = "not_started"
+            if not submitted and deadline > dt.datetime.now(dt.timezone.utc):
+                stats["pending"] += 1
             imported.append(assignment)
 
     created = sum(stats["created"] for stats in per_course)
