@@ -165,7 +165,7 @@ def create_milestones_from_rubric(assignment_id):
     if not is_pending(assignment, now):
         return jsonify(error=NOT_PENDING_MESSAGE), 400
     if assignment.milestones and not replace:
-        return jsonify(error="Milestones already exist; send replace=true to regenerate them"), 409
+        return jsonify(error="Milestones already exist; send choose ' Replace existing milestones' to regenerate them"), 409
 
     for existing in list(assignment.milestones):
         db.session.delete(existing)
