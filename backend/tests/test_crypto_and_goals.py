@@ -1,4 +1,7 @@
 import pytest
+import base64
+import os
+
 from cryptography.fernet import Fernet
 
 from app.services import crypto, goals
@@ -9,7 +12,7 @@ from app.services import crypto, goals
 
 @pytest.fixture(autouse=True)
 def encryption_key(monkeypatch):
-    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", base64.urlsafe_b64encode(os.urandom(32)).decode())
 
 
 def test_round_trips_a_secret():
@@ -34,7 +37,7 @@ def test_decrypting_garbage_returns_none_rather_than_raising():
 
 def test_decrypting_under_the_wrong_key_returns_none(monkeypatch):
     ciphertext = crypto.encrypt_secret("canvas-token-abc123")
-    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", base64.urlsafe_b64encode(os.urandom(32)).decode())
     assert crypto.decrypt_secret(ciphertext) is None
 
 
@@ -45,7 +48,7 @@ def test_missing_key_raises_a_configuration_error(monkeypatch):
 
 
 def test_malformed_key_raises_a_configuration_error(monkeypatch):
-    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", "not-a-valid-fernet-key")
+    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", base64.urlsafe_b64encode(os.urandom(16)).decode())
     with pytest.raises(crypto.EncryptionNotConfigured):
         crypto.encrypt_secret("canvas-token-abc123")
 
@@ -93,3 +96,20 @@ def test_default_items_takes_the_first_n_candidates_and_marks_them_not_done():
 def test_default_items_never_pads_a_short_list():
     chosen = goals.default_items([{"label": "a"}], target_count=3)
     assert len(chosen) == 1
+
+
+def test_a_tampered_ciphertext_is_rejected():
+    token = crypto.encrypt_secret("canvas-token-value")
+    body = token[len("v1:"):]
+    flipped = body[:-2] + ("A" if body[-2] != "A" else "B") + body[-1]
+    assert crypto.decrypt_secret("v1:" + flipped) is None
+
+
+def test_each_encryption_uses_a_fresh_nonce():
+    assert crypto.encrypt_secret("same") != crypto.encrypt_secret("same")
+
+
+def test_stored_format_is_versioned_and_hides_the_plaintext():
+    token = crypto.encrypt_secret("canvas-token-value")
+    assert token.startswith("v1:")
+    assert "canvas-token-value" not in token

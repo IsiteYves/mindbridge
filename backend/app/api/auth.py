@@ -7,13 +7,18 @@ from functools import wraps
 import jwt
 from flask import Blueprint, current_app, g, jsonify, request
 from sqlalchemy.exc import IntegrityError
-from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
 from app.models import RefreshToken, ReminderPreference, User
 from app.services.codes import check_code, issue_code, seconds_until_next_code
 from app.services.mailer import MailError, send_code
-from app.services.passwords import MAX_PASSWORD_LENGTH, password_problems
+from app.services.passwords import (
+    MAX_PASSWORD_LENGTH,
+    hash_password,
+    password_needs_rehash,
+    password_problems,
+    verify_password,
+)
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -164,7 +169,7 @@ def register():
     if existing is not None:
         return jsonify(error="An account with this email already exists", unverified=not existing.email_verified), 409
 
-    user = User(name=name, email=email, password_hash=generate_password_hash(data["password"]), email_verified=False)
+    user = User(name=name, email=email, password_hash=hash_password(data["password"]), email_verified=False)
     db.session.add(user)
     try:
         db.session.flush()
@@ -227,7 +232,7 @@ def login():
     now = dt.datetime.now(dt.timezone.utc)
 
     locked = user is not None and user.locked_until is not None and user.locked_until > now
-    if locked or user is None or not isinstance(password, str) or not check_password_hash(user.password_hash, password):
+    if locked or user is None or not isinstance(password, str) or not verify_password(user.password_hash, password):
         if user is not None and not locked:
             user.failed_login_attempts += 1
             if user.failed_login_attempts >= MAX_LOGIN_ATTEMPTS:
@@ -238,6 +243,8 @@ def login():
     if not user.email_verified:
         return jsonify(error="Verify your email before signing in"), 403
 
+    if password_needs_rehash(user.password_hash):
+        user.password_hash = hash_password(password)
     user.failed_login_attempts = 0
     user.locked_until = None
     db.session.commit()
@@ -270,7 +277,7 @@ def reset_password():
     if user is None or not isinstance(code, str) or not check_code(user, "reset", code):
         return jsonify(error="The code is invalid or has expired. Request a new one."), 400
 
-    user.password_hash = generate_password_hash(data["password"])
+    user.password_hash = hash_password(data["password"])
     user.email_verified = True
     user.failed_login_attempts = 0
     user.locked_until = None
@@ -336,7 +343,7 @@ def request_email_change():
     if new_email == user.email:
         return jsonify(error="That is already your email address"), 400
     current = data.get("current_password")
-    if not isinstance(current, str) or not check_password_hash(user.password_hash, current):
+    if not isinstance(current, str) or not verify_password(user.password_hash, current):
         return jsonify(error="Your current password is incorrect"), 400
     if _find_user(new_email) is not None:
         return jsonify(error="An account with this email already exists"), 409
@@ -384,12 +391,12 @@ def change_password():
     data = _json_body()
     user = g.current_user
     current = data.get("current_password")
-    if not isinstance(current, str) or not check_password_hash(user.password_hash, current):
+    if not isinstance(current, str) or not verify_password(user.password_hash, current):
         return jsonify(error="Your current password is incorrect"), 400
     password_error = _password_error(data)
     if password_error:
         return jsonify(error=password_error), 400
-    user.password_hash = generate_password_hash(data["password"])
+    user.password_hash = hash_password(data["password"])
     db.session.query(RefreshToken).filter(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None)).update(
         {"revoked_at": dt.datetime.now(dt.timezone.utc)}, synchronize_session=False
     )

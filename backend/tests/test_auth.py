@@ -431,3 +431,22 @@ def test_resending_within_five_minutes_is_refused_with_retry_after(client):
     response = client.post("/api/v1/auth/resend-code", json={"email": EMAIL})
     assert response.status_code == 429
     assert 0 < response.get_json()["retry_after"] <= 300
+
+
+def test_a_legacy_password_hash_signs_in_and_is_upgraded_to_argon2(app, client, make_user_headers):
+    from werkzeug.security import generate_password_hash
+
+    from app.extensions import db
+    from app.models import User
+
+    make_user_headers("legacy")
+    with app.app_context():
+        user = db.session.query(User).filter_by(email="legacy@example.com").one()
+        user.password_hash = generate_password_hash("Sturdy-pass1")
+        db.session.commit()
+
+    response = client.post("/api/v1/auth/login", json={"email": "legacy@example.com", "password": "Sturdy-pass1"})
+    assert response.status_code == 200
+    with app.app_context():
+        user = db.session.query(User).filter_by(email="legacy@example.com").one()
+        assert user.password_hash.startswith("$argon2id$")
