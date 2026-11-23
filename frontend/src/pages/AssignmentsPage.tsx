@@ -71,7 +71,6 @@ export default function AssignmentsPage() {
     }
   }
 
-  const count = (status: Status) => assignments?.filter((a) => a.status === status).length ?? 0;
   const sorted = assignments ? [...assignments].sort(byDeadline) : [];
   const pendingList = sorted.filter((a) => isPending(a));
   const closedList = sorted.filter((a) => !isPending(a));
@@ -103,19 +102,19 @@ export default function AssignmentsPage() {
           <p className="stat-detail">Tracked assignments</p>
         </article>
         <article className="stat todo">
-          <p className="stat-label">Not started</p>
-          <p className="stat-value">{count("not_started")}</p>
-          <p className="stat-detail">Waiting to begin</p>
+          <p className="stat-label">Pending</p>
+          <p className="stat-value">{pendingList.length}</p>
+          <p className="stat-detail">Due ahead, not submitted</p>
         </article>
         <article className="stat progress">
           <p className="stat-label">In progress</p>
-          <p className="stat-value">{count("in_progress")}</p>
+          <p className="stat-value">{pendingList.filter((a) => a.status === "in_progress").length}</p>
           <p className="stat-detail">Being worked on</p>
         </article>
         <article className="stat done">
-          <p className="stat-label">Done</p>
-          <p className="stat-value">{count("done")}</p>
-          <p className="stat-detail">Submitted or finished</p>
+          <p className="stat-label">Closed</p>
+          <p className="stat-value">{closedList.length}</p>
+          <p className="stat-detail">Submitted or past deadline</p>
         </article>
       </section>
 

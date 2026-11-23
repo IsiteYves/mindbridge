@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { Link } from "react-router";
 
 import { apiRequest, CanvasCourse, errorMessage, ImportResult } from "@/lib/api";
+import { isPending } from "@/lib/assignments";
 import { formatDate } from "@/lib/dates";
 import { toast } from "@/lib/toast";
 
@@ -148,9 +149,13 @@ export default function ImportPage() {
                   <br />
                   <span className="muted">{formatDate(assignment.deadline)}</span>
                 </span>
-                <Link to={`/assignments/${assignment.id}`} className="button secondary">
-                  Plan milestones
-                </Link>
+                {isPending(assignment) ? (
+                  <Link to={`/assignments/${assignment.id}`} className="button secondary">
+                    Plan milestones
+                  </Link>
+                ) : (
+                  <span className="pill">{assignment.status === "done" ? "Submitted" : "Closed"}</span>
+                )}
               </li>
             ))}
           </ul>
