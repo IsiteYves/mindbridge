@@ -45,6 +45,7 @@ export type ImportCourseStats = {
   id: string;
   name: string;
   found: number;
+  pending: number;
   created: number;
   updated: number;
   skipped: number;

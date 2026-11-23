@@ -5,7 +5,9 @@ import DailyGoalCard from "@/components/DailyGoalCard";
 import FocusTimerCard from "@/components/FocusTimerCard";
 import WorkloadHeatmap from "@/components/WorkloadHeatmap";
 import { Assignment, Status, apiRequest, errorMessage } from "@/lib/api";
+import { isPending } from "@/lib/assignments";
 import { formatDate, fromLocalInput } from "@/lib/dates";
+import { toast } from "@/lib/toast";
 
 const STATUS_LABEL = (status: Status) => status.replace("_", " ");
 
@@ -20,6 +22,7 @@ export default function AssignmentsPage() {
   const [assignments, setAssignments] = useState<Assignment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showClosed, setShowClosed] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -49,7 +52,6 @@ export default function AssignmentsPage() {
     const form = new FormData(event.currentTarget);
     const deadline = String(form.get("deadline") ?? "");
     setBusy(true);
-    setError(null);
     try {
       await apiRequest("/assignments", {
         method: "POST",
@@ -60,9 +62,10 @@ export default function AssignmentsPage() {
         },
       });
       event.currentTarget.reset();
+      toast.success("Assignment added.");
       await load();
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -70,6 +73,9 @@ export default function AssignmentsPage() {
 
   const count = (status: Status) => assignments?.filter((a) => a.status === status).length ?? 0;
   const sorted = assignments ? [...assignments].sort(byDeadline) : [];
+  const pendingList = sorted.filter((a) => isPending(a));
+  const closedList = sorted.filter((a) => !isPending(a));
+  const visibleList = showClosed ? sorted : pendingList;
 
   return (
     <>
@@ -124,8 +130,13 @@ export default function AssignmentsPage() {
       <section className="card">
         <div className="card-title">
           <h2>Upcoming</h2>
-          <span className="muted">Sorted by deadline</span>
+          <span className="muted">Pending, sorted by deadline</span>
         </div>
+        {assignments && closedList.length > 0 && (
+          <button type="button" className="button secondary compact" onClick={() => setShowClosed((v) => !v)}>
+            {showClosed ? "Hide closed" : `Show closed (${closedList.length})`}
+          </button>
+        )}
         {assignments === null && !error && <p className="muted">Loading…</p>}
         {assignments && assignments.length === 0 && (
           <div className="empty-state">
@@ -133,9 +144,9 @@ export default function AssignmentsPage() {
             <p className="muted">Import from Canvas or add one below.</p>
           </div>
         )}
-        {sorted.length > 0 && (
+        {visibleList.length > 0 && (
           <ul className="list">
-            {sorted.map((assignment) => (
+            {visibleList.map((assignment) => (
               <li key={assignment.id}>
                 <div>
                   <Link to={`/assignments/${assignment.id}`} className="list-title">
@@ -166,7 +177,7 @@ export default function AssignmentsPage() {
             </label>
           </div>
           <label className="field">
-            Deadline (optional)
+            Deadline
             <input name="deadline" type="datetime-local" required />
           </label>
           <div>

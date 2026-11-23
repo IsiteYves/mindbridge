@@ -3,26 +3,25 @@ import { Link } from "react-router";
 
 import { apiRequest, CanvasCourse, errorMessage, ImportResult } from "@/lib/api";
 import { formatDate } from "@/lib/dates";
+import { toast } from "@/lib/toast";
 
 export default function ImportPage() {
   const [token, setCanvasToken] = useState("");
   const [courses, setCourses] = useState<CanvasCourse[] | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [result, setResult] = useState<ImportResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function loadCourses(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
-    setError(null);
     setResult(null);
     try {
       const list = await apiRequest<CanvasCourse[]>("/canvas/courses", { method: "POST", body: { token } });
       setCourses(list);
       setSelected([]);
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -30,7 +29,6 @@ export default function ImportPage() {
 
   async function importSelected() {
     setBusy(true);
-    setError(null);
     try {
       const imported = await apiRequest<ImportResult>("/canvas/import", {
         method: "POST",
@@ -40,7 +38,7 @@ export default function ImportPage() {
       setCourses(null);
       setCanvasToken("");
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -79,7 +77,6 @@ export default function ImportPage() {
             Load my courses
           </button>
         </form>
-        {error && <p className="error">{error}</p>}
       </section>
 
       {courses && (
@@ -126,7 +123,7 @@ export default function ImportPage() {
                   <span className="muted">
                     {course.found === 0
                       ? "Canvas returned no assignments for this course."
-                      : `${course.found} found · ${course.created} created · ${course.updated} updated · ${course.skipped} skipped`}
+                      : `${course.pending} pending of ${course.found} · ${course.created} created · ${course.updated} updated · ${course.skipped} skipped`}
                   </span>
                 </span>
               </li>

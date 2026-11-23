@@ -5,7 +5,9 @@ import MilestoneRail from "@/components/MilestoneRail";
 import PlanReview from "@/components/PlanReview";
 import WorkloadHeatmap from "@/components/WorkloadHeatmap";
 import { Assignment, Milestone, RubricCriterion, Status, apiRequest, errorMessage } from "@/lib/api";
+import { isPending } from "@/lib/assignments";
 import { formatDate, fromLocalInput, toLocalInput } from "@/lib/dates";
+import { toast } from "@/lib/toast";
 
 const STATUS_OPTIONS: Status[] = ["not_started", "in_progress", "done"];
 const STATUS_LABEL = (status: Status) => status.replace("_", " ");
@@ -35,6 +37,7 @@ export default function AssignmentView({ id }: { id: string }) {
   const [replace, setReplace] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const pending = assignment ? isPending(assignment) : true;
 
   const fetchAssignment = useCallback(
     () =>
@@ -74,13 +77,12 @@ export default function AssignmentView({ id }: { id: string }) {
       if (!title) continue;
       const weight = parseWeight(draft.weight);
       if (weight === undefined) {
-        setError(`"${title}" needs a weight from 0 to 100, or left blank.`);
+        toast.error(`"${title}" needs a weight from 0 to 100, or left blank.`);
         return;
       }
       cleaned.push({ title, weight });
     }
     setBusy(true);
-    setError(null);
     try {
       await apiRequest<Milestone[]>(`/assignments/${id}/milestones/from-rubric`, {
         method: "POST",
@@ -88,8 +90,9 @@ export default function AssignmentView({ id }: { id: string }) {
       });
       setReplace(false);
       applyLoaded(await fetchAssignment());
+      toast.success("Milestones generated from the rubric.");
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -103,7 +106,6 @@ export default function AssignmentView({ id }: { id: string }) {
     if (toIndex < 0 || toIndex >= milestones.length) return;
     const next = [...milestones];
     [next[fromIndex], next[toIndex]] = [next[toIndex], next[fromIndex]];
-    setError(null);
     try {
       const reordered = await apiRequest<Milestone[]>(`/assignments/${id}/milestones/order`, {
         method: "PUT",
@@ -111,7 +113,7 @@ export default function AssignmentView({ id }: { id: string }) {
       });
       setMilestones(reordered);
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -125,6 +127,9 @@ export default function AssignmentView({ id }: { id: string }) {
           </p>
         )}
         {error && <p className="error">{error}</p>}
+        {assignment && !pending && (
+          <p className="notice">This assignment is closed: it is submitted or its deadline has passed.</p>
+        )}
       </section>
 
       <section className="card">
@@ -137,6 +142,7 @@ export default function AssignmentView({ id }: { id: string }) {
         <WorkloadHeatmap assignmentId={Number(id)} />
       </section>
 
+      {pending && (
       <section className="card">
         <div className="card-title">
           <h2>Plan review</h2>
@@ -150,7 +156,9 @@ export default function AssignmentView({ id }: { id: string }) {
           }
         />
       </section>
+      )}
 
+      {pending && (
       <section className="card">
         <h2>Rubric criteria</h2>
         <p className="muted">
@@ -206,7 +214,7 @@ export default function AssignmentView({ id }: { id: string }) {
               </label>
             )}
           </div>
-          <button className="button" type="submit" disabled={busy || !assignment?.deadline}>
+          <button className="button" type="submit" disabled={busy || !pending}>
             {busy ? "Generating…" : "Generate milestones"}
           </button>
           {assignment && !assignment.deadline && (
@@ -216,7 +224,9 @@ export default function AssignmentView({ id }: { id: string }) {
           )}
         </form>
       </section>
+      )}
 
+      {pending && (
       <section className="card">
         <div className="card-title">
           <h2>Edit your plan</h2>
@@ -241,7 +251,7 @@ export default function AssignmentView({ id }: { id: string }) {
               onDeleted={(removedId) =>
                 setMilestones((current) => current.filter((m) => m.id !== removedId))
               }
-              onError={setError}
+              onError={toast.error}
             />
           ))}
         </ul>
@@ -249,9 +259,10 @@ export default function AssignmentView({ id }: { id: string }) {
           assignmentId={id}
           deadline={assignment?.deadline ?? null}
           onAdded={(created) => setMilestones((current) => [...current, created])}
-          onError={setError}
+          onError={toast.error}
         />
       </section>
+      )}
     </>
   );
 }

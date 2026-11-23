@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { type AgentReview, type Milestone, apiRequest, errorMessage } from "@/lib/api";
+import { toast } from "@/lib/toast";
 import { formatDate } from "@/lib/dates";
 
 export default function PlanReview({
@@ -13,20 +14,18 @@ export default function PlanReview({
   onMilestoneUpdated: (milestone: Milestone) => void;
 }) {
   const [review, setReview] = useState<AgentReview | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [applyingId, setApplyingId] = useState<number | null>(null);
 
   async function runReview() {
     setBusy(true);
-    setError(null);
     try {
       const result = await apiRequest<AgentReview>(`/assignments/${assignmentId}/milestones/review`, {
         method: "POST",
       });
       setReview(result);
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -34,15 +33,15 @@ export default function PlanReview({
 
   async function applySuggestedDate(milestoneId: number, newDate: string) {
     setApplyingId(milestoneId);
-    setError(null);
     try {
       const updated = await apiRequest<Milestone>(`/milestones/${milestoneId}`, {
         method: "PATCH",
         body: { target_date: newDate },
       });
       onMilestoneUpdated(updated);
+      toast.success("New target date applied.");
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setApplyingId(null);
     }
@@ -56,7 +55,6 @@ export default function PlanReview({
         {busy ? "Reviewing…" : review ? "Review again" : "Review my plan"}
       </button>
 
-      {error && <p className="error">{error}</p>}
 
       {review && (
         <div className="review-result">

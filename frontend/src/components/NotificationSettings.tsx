@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { toast } from "@/lib/toast";
 import {
   type NotificationItem,
   type ReminderOffset,
@@ -21,7 +22,6 @@ export default function NotificationSettings() {
   const [draft, setDraft] = useState<Partial<Record<ReminderOffset, boolean>>>({});
   const [inbox, setInbox] = useState<NotificationItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -51,8 +51,6 @@ export default function NotificationSettings() {
 
   async function saveChanges() {
     setSaving(true);
-    setError(null);
-    setNotice(null);
     try {
       const updated = await apiRequest<ReminderPreference[]>("/notifications/preferences", {
         method: "PUT",
@@ -60,21 +58,20 @@ export default function NotificationSettings() {
       });
       setPreferences(updated);
       setDraft({});
-      setNotice("Reminder settings updated.");
+      toast.success("Reminder settings updated.");
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setSaving(false);
     }
   }
 
   async function dismiss(id: number) {
-    setError(null);
     try {
       await apiRequest(`/notifications/${id}/dismiss`, { method: "POST" });
       setInbox((current) => (current ?? []).filter((item) => item.id !== id));
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -95,12 +92,11 @@ export default function NotificationSettings() {
           </label>
         ))}
       </div>
-      <div className="form-row">
-        <button className="button" type="button" disabled={!dirty || saving} onClick={saveChanges}>
+      <div className="update-row">
+        <button className="button compact" type="button" disabled={!dirty || saving} onClick={saveChanges}>
           {saving ? "Updating…" : "Update"}
         </button>
       </div>
-      {notice && <p className="notice">{notice}</p>}
       <p className="muted small">
         You'll also always hear about anything overdue, once a day until it's done, and about anything new a Canvas
         import adds to your plan. Those two aren't optional.

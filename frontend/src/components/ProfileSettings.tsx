@@ -3,27 +3,22 @@ import { FormEvent, useState } from "react";
 import PasswordRules from "@/components/PasswordRules";
 import { type CurrentUser, apiRequest, errorMessage, publishAuthChange, setToken } from "@/lib/api";
 import { unmetPasswordRules } from "@/lib/password";
+import { toast } from "@/lib/toast";
 
 export default function ProfileSettings({ user }: { user: CurrentUser }) {
   const [name, setName] = useState(user.name);
   const [nameBusy, setNameBusy] = useState(false);
-  const [nameNotice, setNameNotice] = useState<string | null>(null);
-  const [nameError, setNameError] = useState<string | null>(null);
 
   const [newEmail, setNewEmail] = useState("");
   const [emailPassword, setEmailPassword] = useState("");
   const [emailCodeSent, setEmailCodeSent] = useState(false);
   const [emailCode, setEmailCode] = useState("");
   const [emailBusy, setEmailBusy] = useState(false);
-  const [emailNotice, setEmailNotice] = useState<string | null>(null);
-  const [emailError, setEmailError] = useState<string | null>(null);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [passwordBusy, setPasswordBusy] = useState(false);
-  const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const unmet = unmetPasswordRules(password);
   const passwordReady = currentPassword.length > 0 && unmet.length === 0 && confirm === password;
@@ -31,14 +26,12 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
   async function saveName(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNameBusy(true);
-    setNameError(null);
-    setNameNotice(null);
     try {
       await apiRequest<CurrentUser>("/auth/me", { method: "PATCH", body: { name } });
       publishAuthChange();
-      setNameNotice("Name updated.");
+      toast.success("Name updated.");
     } catch (err) {
-      setNameError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setNameBusy(false);
     }
@@ -47,17 +40,15 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
   async function requestEmailChange(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setEmailBusy(true);
-    setEmailError(null);
-    setEmailNotice(null);
     try {
       const { message } = await apiRequest<{ message: string }>("/auth/email/request-change", {
         method: "POST",
         body: { new_email: newEmail, current_password: emailPassword },
       });
       setEmailCodeSent(true);
-      setEmailNotice(message);
+      toast.success(message);
     } catch (err) {
-      setEmailError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setEmailBusy(false);
     }
@@ -66,7 +57,6 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
   async function confirmEmailChange(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setEmailBusy(true);
-    setEmailError(null);
     try {
       await apiRequest<CurrentUser>("/auth/email/confirm", { method: "POST", body: { code: emailCode } });
       publishAuthChange();
@@ -74,9 +64,9 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
       setNewEmail("");
       setEmailPassword("");
       setEmailCode("");
-      setEmailNotice("Email updated.");
+      toast.success("Email updated.");
     } catch (err) {
-      setEmailError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setEmailBusy(false);
     }
@@ -85,8 +75,6 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
   async function changePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPasswordBusy(true);
-    setPasswordError(null);
-    setPasswordNotice(null);
     try {
       const { token } = await apiRequest<{ token: string }>("/auth/password", {
         method: "PATCH",
@@ -96,9 +84,9 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
       setCurrentPassword("");
       setPassword("");
       setConfirm("");
-      setPasswordNotice("Password updated. Other devices have been signed out.");
+      toast.success("Password updated. Other devices have been signed out.");
     } catch (err) {
-      setPasswordError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setPasswordBusy(false);
     }
@@ -113,11 +101,11 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
             Full name
             <input value={name} onChange={(event) => setName(event.target.value)} maxLength={120} required />
           </label>
-          {nameNotice && <p className="notice">{nameNotice}</p>}
-          {nameError && <p className="error">{nameError}</p>}
-          <button className="button" type="submit" disabled={nameBusy || name.trim() === user.name}>
-            {nameBusy ? "Updating…" : "Update name"}
-          </button>
+          <div className="update-row">
+            <button className="button compact" type="submit" disabled={nameBusy || name.trim() === user.name}>
+              {nameBusy ? "Updating…" : "Update"}
+            </button>
+          </div>
         </form>
       </section>
 
@@ -140,11 +128,11 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
                 required
               />
             </label>
-            {emailNotice && <p className="notice">{emailNotice}</p>}
-            {emailError && <p className="error">{emailError}</p>}
-            <button className="button" type="submit" disabled={emailBusy || !newEmail || !emailPassword}>
-              {emailBusy ? "Sending…" : "Send code to new email"}
-            </button>
+            <div className="update-row">
+              <button className="button compact" type="submit" disabled={emailBusy || !newEmail || !emailPassword}>
+                {emailBusy ? "Sending…" : "Send code"}
+              </button>
+            </div>
           </form>
         ) : (
           <form className="form" onSubmit={confirmEmailChange}>
@@ -160,10 +148,11 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
                 required
               />
             </label>
-            {emailError && <p className="error">{emailError}</p>}
-            <button className="button" type="submit" disabled={emailBusy || emailCode.length !== 6}>
-              {emailBusy ? "Confirming…" : "Update email"}
-            </button>
+            <div className="update-row">
+              <button className="button compact" type="submit" disabled={emailBusy || emailCode.length !== 6}>
+                {emailBusy ? "Confirming…" : "Update"}
+              </button>
+            </div>
           </form>
         )}
       </section>
@@ -204,11 +193,11 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
               required
             />
           </label>
-          {passwordNotice && <p className="notice">{passwordNotice}</p>}
-          {passwordError && <p className="error">{passwordError}</p>}
-          <button className="button" type="submit" disabled={passwordBusy || !passwordReady}>
-            {passwordBusy ? "Updating…" : "Update password"}
-          </button>
+          <div className="update-row">
+            <button className="button compact" type="submit" disabled={passwordBusy || !passwordReady}>
+              {passwordBusy ? "Updating…" : "Update"}
+            </button>
+          </div>
         </form>
       </section>
     </div>
