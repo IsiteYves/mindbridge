@@ -2,12 +2,8 @@ import { Link, useLocation, useNavigate } from "react-router";
 
 import { endSession } from "@/lib/session";
 
-// "Home" is deliberately not listed yet: for a signed-in user "/" redirects
-// straight to "/assignments" today (see App.tsx), so a separate Home entry
-// would either duplicate this one or point at a page that doesn't exist. A
-// real dashboard/overview surface is planned (see the assignment planner
-// work later this week) and gets its own nav entry once it exists.
 const LINKS = [
+  { to: "/dashboard", label: "Dashboard" },
   { to: "/assignments", label: "My assignments" },
   { to: "/check-in", label: "Daily check-in" },
   { to: "/plan", label: "Study plan" },
@@ -15,7 +11,7 @@ const LINKS = [
 ];
 
 // Rendered only for signed-in users; logged-out visitors see PublicHeader instead.
-export default function NavBar() {
+export default function NavBar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
@@ -29,7 +25,7 @@ export default function NavBar() {
   }
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${open ? " open" : ""}`}>
       <Link to="/assignments" className="brand">
         <span className="brand-mark" aria-hidden="true">
           M
@@ -37,7 +33,7 @@ export default function NavBar() {
         MindBridge
       </Link>
 
-      <nav className="sidebar-nav" aria-label="Main navigation">
+      <nav className="sidebar-nav" aria-label="Main navigation" onClick={onClose}>
         {LINKS.map((link) => (
           <Link
             key={link.to}
@@ -55,7 +51,7 @@ export default function NavBar() {
         <p className="muted">Small milestones make room for your bigger ambitions.</p>
       </div>
 
-      <div className="sidebar-footer">
+      <div className="sidebar-footer" onClick={onClose}>
         <Link
           to="/planning-guide"
           className={`nav-link${isActive("/planning-guide") ? " active" : ""}`}

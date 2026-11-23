@@ -8,6 +8,7 @@ import SiteFooter from "@/components/SiteFooter";
 import ToastHost from "@/components/ToastHost";
 import AssignmentDetailPage from "@/pages/AssignmentDetailPage";
 import AssignmentSearchPage from "@/pages/AssignmentSearchPage";
+import DashboardPage from "@/pages/DashboardPage";
 import AssignmentsPage from "@/pages/AssignmentsPage";
 import CheckInPage from "@/pages/CheckInPage";
 import HomePage from "@/pages/HomePage";
@@ -28,6 +29,16 @@ import { useSignedIn } from "@/lib/useSignedIn";
 export default function App() {
   const signedIn = useSignedIn();
   const [restored, setRestored] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+
+  useEffect(() => {
+    if (!navOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setNavOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [navOpen]);
 
   useEffect(() => {
     restoreSession().finally(() => setRestored(true));
@@ -43,11 +54,12 @@ export default function App() {
 
   // Protected pages redirect to sign-in; sign-in pages redirect to the dashboard once signed in.
   const guard = (page: ReactElement) => (signedIn ? page : <Navigate to="/login" replace />);
-  const guest = (page: ReactElement) => (signedIn ? <Navigate to="/assignments" replace /> : page);
+  const guest = (page: ReactElement) => (signedIn ? <Navigate to="/dashboard" replace /> : page);
 
   const routes = (
     <Routes>
-      <Route path="/" element={signedIn ? <Navigate to="/assignments" replace /> : <HomePage />} />
+      <Route path="/" element={signedIn ? <Navigate to="/dashboard" replace /> : <HomePage />} />
+      <Route path="/dashboard" element={guard(<DashboardPage />)} />
       <Route path="/login" element={guest(<LoginPage />)} />
       <Route path="/register" element={guest(<RegisterPage />)} />
       <Route path="/verify-email" element={guest(<VerifyEmailPage />)} />
@@ -82,9 +94,10 @@ export default function App() {
   return (
     <>
       <ToastHost />
-      <NavBar />
+      <NavBar open={navOpen} onClose={() => setNavOpen(false)} />
+      {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} />}
       <div className="app-shell">
-        <AppTopbar />
+        <AppTopbar navOpen={navOpen} onToggleNav={() => setNavOpen((open) => !open)} />
         <main className="admin-main">
           <div className="page">{routes}</div>
         </main>

@@ -21,7 +21,7 @@ export default function LoginPage() {
         body: { email, password: String(form.get("password") ?? "") },
       });
       setToken(token);
-      navigate("/assignments", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err : new ApiError(errorMessage(err), 0));
       setBusy(false);

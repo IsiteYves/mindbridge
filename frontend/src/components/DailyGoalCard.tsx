@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { Link } from "react-router";
+
 import { type DailyGoal, apiRequest, errorMessage } from "@/lib/api";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 
@@ -93,6 +95,11 @@ export default function DailyGoalCard() {
           </ul>
         </>
       )}
+      <div className="actions-row">
+        <Link to="/assignments" className="button secondary compact">
+          View my assignments
+        </Link>
+      </div>
     </article>
   );
 }

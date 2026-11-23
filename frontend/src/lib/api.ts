@@ -95,6 +95,13 @@ export type FocusSession = {
 
 export type Page<T> = { items: T[]; total: number; limit: number; offset: number };
 
+export type DashboardSummary = {
+  counts: { total: number; pending: number; in_progress: number; closed: number };
+  deadlines: { week_start: string; count: number }[];
+  milestones: { done: number; total: number };
+  focus: { date: string; minutes: number }[];
+};
+
 export const REMINDER_OFFSETS = [5, 2, 1, 0] as const;
 export type ReminderOffset = (typeof REMINDER_OFFSETS)[number];
 
