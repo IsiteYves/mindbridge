@@ -140,3 +140,14 @@ def test_an_empty_goal_is_refilled_once_milestones_exist(client, make_user_heade
     )
     refreshed = client.get("/api/v1/daily-goal/today", headers=headers).get_json()
     assert [item["label"] for item in refreshed["items"]] == ["Draft"]
+
+
+def test_an_item_can_be_unmarked_again(client, make_user_headers):
+    headers = make_user_headers("student1")
+    make_milestones(client, headers, [("First", "2026-11-05T00:00:00+00:00")])
+    client.get(f"{DAILY_GOAL}/today", headers=headers)
+    client.patch(f"{DAILY_GOAL}/today/items/0", json={"done": True}, headers=headers)
+
+    response = client.patch(f"{DAILY_GOAL}/today/items/0", json={"done": False}, headers=headers)
+    assert response.get_json()["items"][0]["done"] is False
+    assert response.get_json()["done_count"] == 0

@@ -5,6 +5,7 @@ import datetime as dt
 from flask import Blueprint, g, jsonify
 
 from app.api.auth import token_required
+from app.api.common import json_body
 from app.extensions import db
 from app.models import Assignment, DailyGoal, Milestone
 from app.services import goals as goal_rules
@@ -68,8 +69,11 @@ def mark_item_done(item_index):
     goal = _existing_goal()
     if goal is None:
         return jsonify(error="Today's goal has not been created yet. GET /daily-goal/today first."), 404
+    done = json_body().get("done", True)
+    if not isinstance(done, bool):
+        return jsonify(error="done must be true or false"), 400
     try:
-        goal.items = goal_rules.mark_done(goal.items, item_index)
+        goal.items = goal_rules.set_done(goal.items, item_index, done)
     except IndexError:
         return jsonify(error="item_index is out of range for today's goal."), 400
     db.session.commit()
