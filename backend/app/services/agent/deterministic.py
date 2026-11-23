@@ -27,6 +27,9 @@ WEIGHT_TOLERANCE = 10
 # minutes apart — ordered, but not a plan a person could use.
 MIN_HOURS_BETWEEN_TARGETS = 4
 
+CROWD_WINDOW = dt.timedelta(hours=48)
+CROWD_MIN_MILESTONES = 2
+
 
 def _title_words(title: str) -> set[str]:
     return {word for word in title.lower().split() if len(word) > 3}
@@ -90,6 +93,27 @@ def check_balance(rubric: list[RubricCriterionFacts], milestones: list[Milestone
             Finding(severity="info", milestone_id=None, message="Every milestone is marked done. Nothing left to balance.")
         )
     return findings
+
+
+def check_crowding(milestones: list[MilestoneFacts], deadline: dt.datetime | None, now: dt.datetime) -> list[Finding]:
+    if deadline is None:
+        return []
+    window_start = deadline - CROWD_WINDOW
+    crowded = [
+        m for m in milestones if m["status"] != "done" and now < m["target_date"] and window_start <= m["target_date"] <= deadline
+    ]
+    if len(crowded) < CROWD_MIN_MILESTONES:
+        return []
+    return [
+        Finding(
+            severity="warning",
+            milestone_id=None,
+            message=(
+                f"{len(crowded)} open milestones fall in the last two days before the deadline. "
+                "Moving one earlier spreads the final stretch."
+            ),
+        )
+    ]
 
 
 def detect_slipping(milestones: list[MilestoneFacts], now: dt.datetime) -> list[int]:
