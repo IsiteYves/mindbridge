@@ -59,16 +59,8 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
   const gridFirstDay = useMemo(() => gridStart(monthStart), [monthStart]);
 
   useEffect(() => {
+    if (!kindsParam) return;
     let cancelled = false;
-    setError(null);
-    if (!kindsParam) {
-      setDays({});
-      setLoading(false);
-      return () => {
-        cancelled = true;
-      };
-    }
-    setLoading(true);
     const scope = assignmentId ? `&assignment_id=${assignmentId}` : "";
     apiRequest<WorkloadResponse>(
       `/schedule/workload?start=${toISODate(monthStart)}&end=${toISODate(monthEnd)}&kinds=${kindsParam}${scope}`,
@@ -78,6 +70,7 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
         const byDate: Record<string, WorkloadDay> = {};
         for (const day of response.days) byDate[day.date] = day;
         setDays(byDate);
+        setError(null);
         setLoading(false);
       },
       (err: unknown) => {
@@ -96,17 +89,20 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
     setYear(next.getUTCFullYear());
     setMonth(next.getUTCMonth());
     setSelected(null);
+    setLoading(true);
   }
 
   function goToToday() {
     setYear(today.getUTCFullYear());
     setMonth(today.getUTCMonth());
     setSelected(null);
+    setLoading(true);
   }
 
   function toggleKind(kind: WorkloadKind) {
     setKinds((current) => ({ ...current, [kind]: !current[kind] }));
     setSelected(null);
+    setLoading(true);
   }
 
   const cells = useMemo(() => {
@@ -119,7 +115,8 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
     return result;
   }, [gridFirstDay, month]);
 
-  const selectedDay = selected ? days[selected] : null;
+  const visibleDays = kindsParam ? days : {};
+  const selectedDay = selected ? visibleDays[selected] : null;
 
   return (
     <div className="workload-heatmap">
@@ -165,7 +162,7 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
         {Array.from({ length: 6 }, (_, week) => (
           <div className="heatmap-row" role="row" key={week}>
             {cells.slice(week * 7, week * 7 + 7).map(({ date, inMonth }) => {
-              const day = days[date];
+              const day = visibleDays[date];
               const count = day?.count ?? 0;
               return (
                 <button
