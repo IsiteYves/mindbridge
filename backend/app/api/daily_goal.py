@@ -35,7 +35,7 @@ def _candidate_tasks(user_id, limit):
     milestones = (
         db.session.query(Milestone)
         .join(Assignment)
-        .filter(Assignment.user_id == user_id, Milestone.status != "done")
+        .filter(Assignment.user_id == user_id, Milestone.status != "done", Assignment.status != "done")
         .order_by(Milestone.target_date)
         .limit(limit)
         .all()
@@ -55,6 +55,9 @@ def get_today():
         items = goal_rules.default_items(_candidate_tasks(g.current_user.id, DEFAULT_TARGET), target_count=DEFAULT_TARGET)
         goal = DailyGoal(user_id=g.current_user.id, goal_date=_today(), target_count=DEFAULT_TARGET, items=items)
         db.session.add(goal)
+        db.session.commit()
+    elif not goal.items:
+        goal.items = goal_rules.default_items(_candidate_tasks(g.current_user.id, DEFAULT_TARGET), target_count=DEFAULT_TARGET)
         db.session.commit()
     return jsonify(goal_json(goal))
 

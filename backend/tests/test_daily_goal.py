@@ -121,3 +121,22 @@ def test_the_underlying_row_is_one_per_user_per_day(client, make_user_headers):
 
     user = db.session.query(User).filter_by(email="student1@example.com").one()
     assert db.session.query(DailyGoal).filter_by(user_id=user.id).count() == 1
+
+
+def test_an_empty_goal_is_refilled_once_milestones_exist(client, make_user_headers):
+    headers = make_user_headers("student1")
+    empty = client.get("/api/v1/daily-goal/today", headers=headers).get_json()
+    assert empty["items"] == []
+
+    assignment_id = client.post(
+        ASSIGNMENTS,
+        json={"course": "CS", "title": "Report", "deadline": "2026-12-20T23:59:00+00:00"},
+        headers=headers,
+    ).get_json()["id"]
+    client.post(
+        f"{ASSIGNMENTS}/{assignment_id}/milestones",
+        json={"title": "Draft", "target_date": "2026-12-01T00:00:00+00:00"},
+        headers=headers,
+    )
+    refreshed = client.get("/api/v1/daily-goal/today", headers=headers).get_json()
+    assert [item["label"] for item in refreshed["items"]] == ["Draft"]
