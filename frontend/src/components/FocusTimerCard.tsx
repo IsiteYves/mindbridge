@@ -51,7 +51,7 @@ export default function FocusTimerCard() {
       },
       () => undefined,
     );
-    fetchTodayCount().then((count) => {
+    void fetchTodayCount().then((count) => {
       if (!cancelled) setTodayCount(count);
     });
     return () => {

@@ -48,7 +48,7 @@ export default function AssignmentsPage() {
         if (!cancelled) setError(errorMessage(err));
       },
     );
-    Promise.all([
+    void Promise.all([
       countOf("state=pending"),
       countOf("state=pending&status=in_progress"),
       countOf("state=closed"),
