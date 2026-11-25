@@ -1,10 +1,20 @@
 from urllib.parse import urlparse
 
 import requests
+from requests.adapters import HTTPAdapter
 
 REQUEST_TIMEOUT = 10
 PAGE_SIZE = 100
 MAX_TITLE_LENGTH = 255
+MAX_CONCURRENT_REQUESTS = 6
+
+
+def _new_session():
+    session = requests.Session()
+    adapter = HTTPAdapter(pool_maxsize=MAX_CONCURRENT_REQUESTS)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
 
 
 class CanvasError(Exception):
@@ -16,7 +26,7 @@ class CanvasError(Exception):
 class CanvasClient:
     def __init__(self, base_url, token, session=None):
         self.base_url = base_url.rstrip("/")
-        self.session = session or requests.Session()
+        self.session = session or _new_session()
         self.session.headers["Authorization"] = f"Bearer {token}"
 
     def list_courses(self):

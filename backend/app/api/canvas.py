@@ -100,7 +100,7 @@ def connect():
     if token is None or not _valid_course_ids(course_ids):
         return jsonify(error=f"token and 1 to {MAX_COURSES_PER_IMPORT} course_ids are required"), 400
 
-    result = sync_courses(g.current_user, _client(token), course_ids)
+    result = sync_courses(g.current_user, _client(token), course_ids, notify_in_background=_notify_in_background())
 
     integration = _integration_for(g.current_user.id)
     if integration is None:
@@ -115,6 +115,10 @@ def connect():
 
     response = {**result, "assignments": [assignment_json(a) for a in result["assignments"]]}
     return jsonify(**response, connection=_integration_json(integration))
+
+
+def _notify_in_background():
+    return not current_app.config.get("TESTING", False)
 
 
 def _stored_token(user_id):
@@ -156,7 +160,7 @@ def update_selection():
         return jsonify(error=f"1 to {MAX_COURSES_PER_IMPORT} course_ids are required"), 400
     integration, token = _stored_token(g.current_user.id)
     wanted = list(dict.fromkeys(str(c) for c in course_ids))
-    result = sync_courses(g.current_user, _client(token), wanted)
+    result = sync_courses(g.current_user, _client(token), wanted, notify_in_background=_notify_in_background())
     integration.selected_course_ids = wanted
     integration.last_synced_at = dt.datetime.now(dt.timezone.utc)
     db.session.commit()
@@ -170,7 +174,7 @@ def sync():
     course_ids = integration.selected_course_ids or []
     if not course_ids:
         raise CanvasError("No courses are selected for this connection. Choose some in Integrations.", 409)
-    result = sync_courses(g.current_user, _client(token), course_ids)
+    result = sync_courses(g.current_user, _client(token), course_ids, notify_in_background=_notify_in_background())
     integration.last_synced_at = dt.datetime.now(dt.timezone.utc)
     db.session.commit()
     return _sync_response(result, integration)
