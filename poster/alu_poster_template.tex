@@ -13,15 +13,15 @@
 \usepackage{tikz}
 \usetikzlibrary{calc,positioning}
 
-% ---------- ALU-inspired palette ----------
-\definecolor{ALUBlue}{HTML}{002E6D}
-\definecolor{ALUBlueDark}{HTML}{001F49}
-\definecolor{ALUBlueLight}{HTML}{EAF1FB}
-\definecolor{ALUBlueLine}{HTML}{BFD0EA}
-\definecolor{ALUText}{HTML}{1E2A38}
-\definecolor{ALUMuted}{HTML}{5C6B7A}
+% ---------- Green palette ----------
+\definecolor{ALUGreen}{HTML}{14532D}
+\definecolor{ALUGreenDark}{HTML}{0B3A1E}
+\definecolor{ALUGreenLight}{HTML}{EAF7EE}
+\definecolor{ALUGreenLine}{HTML}{BFE3CB}
+\definecolor{ALUText}{HTML}{1E2A22}
+\definecolor{ALUMuted}{HTML}{5C7A66}
 \definecolor{ALUWhite}{HTML}{FFFFFF}
-\definecolor{ALUAccent}{HTML}{D9E6F7}
+\definecolor{ALUAccent}{HTML}{D4F0DD}
 
 % ---------- Theme ----------
 \usetheme{Simple}
@@ -29,10 +29,10 @@
 \usebackgroundstyle{Default}
 
 \colorlet{backgroundcolor}{ALUWhite}
-\colorlet{framecolor}{ALUBlueLine}
+\colorlet{framecolor}{ALUGreenLine}
 \colorlet{titlefgcolor}{white}
-\colorlet{titlebgcolor}{ALUBlue}
-\colorlet{blocktitlebgcolor}{ALUBlue}
+\colorlet{titlebgcolor}{ALUGreen}
+\colorlet{blocktitlebgcolor}{ALUGreen}
 \colorlet{blocktitlefgcolor}{white}
 \colorlet{blockbodybgcolor}{white}
 \colorlet{blockbodyfgcolor}{ALUText}
@@ -49,10 +49,10 @@
     bodyoffsetx=0mm, bodyoffsety=3.5mm,
     bodyverticalshift=3.5mm, linewidth=1.0mm
 }{
-    \draw[rounded corners=16pt, line width=1.1mm, color=ALUBlueLine, fill=white]
+    \draw[rounded corners=16pt, line width=1.1mm, color=ALUGreenLine, fill=white]
       (blockbody.south west) rectangle (blockbody.north east);
     \ifBlockHasTitle
-      \draw[rounded corners=16pt, line width=0mm, fill=ALUBlue]
+      \draw[rounded corners=16pt, line width=0mm, fill=ALUGreen]
       (blocktitle.south west) rectangle (blocktitle.north east);
     \fi
 }
@@ -61,7 +61,7 @@
 % ---------- Helpers ----------
 \newcommand{\takeawaybox}[1]{%
   \begin{center}
-  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
+  \fcolorbox{ALUGreenLine}{ALUGreenLight}{
     \parbox{0.94\linewidth}{\centering\bfseries\Large #1}
   }
   \end{center}
@@ -69,14 +69,14 @@
 
 \newcommand{\posterimageplaceholder}[2][0.95\linewidth]{%
   \begin{center}
-  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
-    \parbox[c][3.4cm][c]{#1}{\centering\bfseries\Large #2\\[0.35em]\normalsize Replace with a polished figure, screenshot, architecture diagram, chart, or hardware photo}
+  \fcolorbox{ALUGreenLine}{ALUGreenLight}{
+    \parbox[c][6.6cm][c]{#1}{\centering\bfseries\Large #2\\[0.35em]\normalsize Replace with a polished figure, screenshot, architecture diagram, chart, or hardware photo}
   }
   \end{center}
 }
 
 \newcommand{\metricbox}[2]{%
-  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
+  \fcolorbox{ALUGreenLine}{ALUGreenLight}{
     \parbox[c][2.9cm][c]{0.29\linewidth}{\centering\bfseries\LARGE #1\\[0.18em]\normalsize #2}
   }
 }
@@ -226,61 +226,58 @@ Iterate & what changed after evidence or testing \\
 
 \begin{center}
 \begin{minipage}{0.31\linewidth}\centering
-{\color{ALUBlue}\LARGE\bfseries 354/354}\\[-1mm]
+{\color{ALUGreen}\LARGE\bfseries 354/354}\\[-1mm]
 {\normalsize Tests passed}
 \end{minipage}\hfill
 \begin{minipage}{0.31\linewidth}\centering
-{\color{ALUBlue}\LARGE\bfseries 96\%}\\[-1mm]
+{\color{ALUGreen}\LARGE\bfseries 96\%}\\[-1mm]
 {\normalsize Task success}
 \end{minipage}\hfill
 \begin{minipage}{0.31\linewidth}\centering
-{\color{ALUBlue}\LARGE\bfseries 10}\\[-1mm]
+{\color{ALUGreen}\LARGE\bfseries 10}\\[-1mm]
 {\normalsize Pilot students}
 \end{minipage}
 \end{center}
 
-
 \begin{center}
-\fcolorbox{ALUBlueLine}{ALUBlueLight}{
+\fcolorbox{ALUGreenLine}{ALUGreenLight}{
 \begin{minipage}{0.92\linewidth}\centering
 {\normalsize\bfseries Average API response time:}
-{\color{ALUBlue}\bfseries 18.51 ms}\\[-1mm]
+{\color{ALUGreen}\bfseries 18.51 ms}\\[-1mm]
 {\small 6 unique API endpoints | 30 requests | 5 per endpoint}
 \end{minipage}}
 \end{center}
-
 
 \begin{center}
 {\normalsize\bfseries User feedback:}
 {\normalsize Students reported that the Pomodoro technique helped them focus more during study sessions.}
 \end{center}
 
-
 \begin{center}
-\includegraphics[width=0.28\linewidth]{automated_tests.png}\hspace{4em}
-\includegraphics[width=0.28\linewidth]{api_response_times.png}
-\end{center}
-
-
-\begin{center}
-{\color{ALUBlue}\Large\bfseries Demo Evidence}
+\includegraphics[width=0.25\linewidth]{automated_tests.png}\hspace{4em}
+\includegraphics[width=0.25\linewidth]{api_response_times.png}
 \end{center}
 
 \begin{center}
-\begin{minipage}[t]{0.31\linewidth}\centering
+{\color{ALUGreen}\Large\bfseries Demo Evidence}
+\end{center}
+
+\begin{center}
+\begin{minipage}[t]{0.29\linewidth}\centering
 \includegraphics[width=\linewidth]{canvas_import.png}\\[-1mm]
 {\small\bfseries 1. Canvas import}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.31\linewidth}\centering
+\begin{minipage}[t]{0.29\linewidth}\centering
 \includegraphics[width=\linewidth]{daily_checkin.png}\\[-1mm]
 {\small\bfseries 2. Daily check-in}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.31\linewidth}\centering
+\begin{minipage}[t]{0.29\linewidth}\centering
 \includegraphics[width=\linewidth]{assignments.png}\\[-1mm]
 {\small\bfseries 3. Assignments}
 \end{minipage}
 \end{center}
 }
+
 
 
 % ================= RIGHT =================
