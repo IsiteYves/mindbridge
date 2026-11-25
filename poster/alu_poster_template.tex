@@ -1,5 +1,6 @@
 \documentclass[25pt, a0paper, landscape]{tikzposter}
 
+
 % ---------- Packages ----------
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -13,341 +14,297 @@
 \usepackage{tikz}
 \usetikzlibrary{calc,positioning}
 
-% ---------- ALU-inspired palette ----------
-\definecolor{ALUBlue}{HTML}{002E6D}
-\definecolor{ALUBlueDark}{HTML}{001F49}
-\definecolor{ALUBlueLight}{HTML}{EAF1FB}
-\definecolor{ALUBlueLine}{HTML}{BFD0EA}
-\definecolor{ALUText}{HTML}{1E2A38}
-\definecolor{ALUMuted}{HTML}{5C6B7A}
-\definecolor{ALUWhite}{HTML}{FFFFFF}
-\definecolor{ALUAccent}{HTML}{D9E6F7}
+
+% ---------- MindBridge Forest/Teal Green Palette ----------
+\definecolor{MBGreen}{HTML}{0B5D4B}        % Deep forest/teal green (matches UI buttons/badges)
+\definecolor{MBGreenDark}{HTML}{074235}    % Darker green accent
+\definecolor{MBGreenLight}{HTML}{E8F3F0}   % Soft mint tint for callout boxes
+\definecolor{MBGreenLine}{HTML}{9CC5BA}    % Muted sage border
+\definecolor{MBText}{HTML}{182421}         % Dark charcoal-green text for high contrast
+\definecolor{MBMuted}{HTML}{526660}
+\definecolor{MBWhite}{HTML}{FFFFFF}
+
 
 % ---------- Theme ----------
 \usetheme{Simple}
 \usecolorstyle{Default}
 \usebackgroundstyle{Default}
 
-\colorlet{backgroundcolor}{ALUWhite}
-\colorlet{framecolor}{ALUBlueLine}
+
+\colorlet{backgroundcolor}{MBWhite}
+\colorlet{framecolor}{MBGreenLine}
 \colorlet{titlefgcolor}{white}
-\colorlet{titlebgcolor}{ALUBlue}
-\colorlet{blocktitlebgcolor}{ALUBlue}
+\colorlet{titlebgcolor}{MBGreen}
+\colorlet{blocktitlebgcolor}{MBGreen}
 \colorlet{blocktitlefgcolor}{white}
 \colorlet{blockbodybgcolor}{white}
-\colorlet{blockbodyfgcolor}{ALUText}
+\colorlet{blockbodyfgcolor}{MBText}
+
 
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{0.12em}
-\linespread{0.98}
-\setlist[itemize]{leftmargin=1.05em,itemsep=0.02em,topsep=0.02em,parsep=0pt,partopsep=0pt}
+\setlength{\parskip}{0.03em}
+\linespread{0.92}
+\setlist[itemize]{leftmargin=1.0em,itemsep=0em,topsep=0em,parsep=0pt,partopsep=0pt}
+
 
 % ---------- Block appearance ----------
-\defineblockstyle{ALUBlock}{
+\defineblockstyle{MBBlock}{
     titlewidthscale=1, bodywidthscale=1, roundedcorners=16,
     titleleft, titleoffsetx=0mm, titleoffsety=0mm,
-    bodyoffsetx=0mm, bodyoffsety=3.5mm,
-    bodyverticalshift=3.5mm, linewidth=1.0mm
+    bodyoffsetx=0mm, bodyoffsety=1.6mm,
+    bodyverticalshift=1.6mm, linewidth=1.0mm
 }{
-    \draw[rounded corners=16pt, line width=1.1mm, color=ALUBlueLine, fill=white]
+    \draw[rounded corners=16pt, line width=1.1mm, color=MBGreenLine, fill=white]
       (blockbody.south west) rectangle (blockbody.north east);
     \ifBlockHasTitle
-      \draw[rounded corners=16pt, line width=0mm, fill=ALUBlue]
+      \draw[rounded corners=16pt, line width=0mm, fill=MBGreen]
       (blocktitle.south west) rectangle (blocktitle.north east);
     \fi
 }
-\useblockstyle{ALUBlock}
+\useblockstyle{MBBlock}
+
 
 % ---------- Helpers ----------
 \newcommand{\takeawaybox}[1]{%
   \begin{center}
-  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
-    \parbox{0.94\linewidth}{\centering\bfseries\Large #1}
+  \fcolorbox{MBGreenLine}{MBGreenLight}{
+    \parbox{0.85\linewidth}{\centering\bfseries\Large #1}
   }
   \end{center}
 }
 
-\newcommand{\posterimageplaceholder}[2][0.95\linewidth]{%
-  \begin{center}
-  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
-    \parbox[c][6.6cm][c]{#1}{\centering\bfseries\Large #2\\[0.35em]\normalsize Replace with a polished figure, screenshot, architecture diagram, chart, or hardware photo}
-  }
-  \end{center}
-}
 
 \newcommand{\metricbox}[2]{%
-  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
-    \parbox[c][2.9cm][c]{0.29\linewidth}{\centering\bfseries\LARGE #1\\[0.18em]\normalsize #2}
+  \fcolorbox{MBGreenLine}{MBGreenLight}{
+    \parbox[c][1.85cm][c]{0.29\linewidth}{\centering\bfseries\Large #1\\[0.05em]\small #2}
   }
 }
 
-\newcommand{\projectmeta}[4]{%
-  \begin{tabular}{>{\bfseries}p{0.24\linewidth}p{0.69\linewidth}}
-    Team & #1\\[0.18em]
-    Programme & #2\\[0.18em]
-    Supervisors & #3\\[0.18em]
-    Demo / QR & #4
+
+\newcommand{\projectmeta}[6]{%
+  \begin{tabular}{>{\bfseries}p{0.22\linewidth}p{0.72\linewidth}}
+    Team & #1\\[0.04em]
+    Programme & #2\\[0.04em]
+    Supervisors & #3\\[0.04em]
+    Repo & #4\\[0.04em]
+    Live app & #5\\[0.04em]
+    Demo video & #6
   \end{tabular}
 }
 
-% ---------- Title ----------
-\title{MindBridge: A Technological Academic Workload Deconstruction and Burnout Mitigation Platform}
+
+\newcommand{\uifigure}[3]{%
+  \begin{minipage}[t]{0.455\linewidth}\centering
+    \fcolorbox{MBGreenLine}{MBGreenLight}{%
+      \includegraphics[width=0.97\linewidth,height=4.2cm,keepaspectratio]{#1}%
+    }\\[0.03em]
+    {\normalsize\textbf{#2}}\\[-0.04em]
+    {\small\textcolor{MBMuted}{#3}}
+  \end{minipage}%
+}
+
+
+\newcommand{\hflowarrow}[1]{%
+  \begin{minipage}[c]{0.06\linewidth}\centering
+    {\Huge\bfseries\color{MBGreenDark} #1}
+  \end{minipage}%
+}
+
+
+% ---------- Title (Wrapped cleanly so it never clips on the right) ----------
+\title{\parbox{0.72\linewidth}{\centering MindBridge: Academic Workload Deconstruction\\and Burnout Mitigation Platform}}
 \author{Tendai Lynn Mtakiwa \textbar\ Maunice Akaliza \textbar\ Yves Isite \textbar\ Orla Ishimwe \textbar\ Esther Konde \textbar\ Joel Hakizimana \textbar\ Muuse Muuse}
 \institute{African Leadership University \textbar\ BSc. in Software Engineering Foundations Project \textbar\ Group Name: MindBridge}
 \titlegraphic{\includegraphics[height=3.5cm]{alu-logo-white-full.png}}
 
+
 \begin{document}
 \maketitle
 
-\vspace{0.1cm}
+
+\vspace{0.01cm}
+
 
 \begin{columns}
+
 
 % ================= LEFT =================
 \column{0.30}
 
+
 % --- SECTION 1: MAUNICE AKALIZA ---
 \block{1. Problem, Context, and Users}{
-
 \begin{itemize}
-  \item ALU students struggle with large assignments, overlapping deadlines, 
-  and academic stress. Existing platforms such as Canvas provide deadlines 
-  but do not break assignments into manageable tasks. 
-  An initial survey found that 83\% of respondents experienced moderate to
-   very high academic stress. MindBridge addresses this challenge by helping 
-   students organize assignments and plan their workload. 
+  \item \textbf{Context \& Stress:} ALU students face overlapping deadlines; 83\% surveyed reported moderate to very high academic stress.
+  \item \textbf{Current Gap:} Canvas lists due dates without splitting work into tasks.
+  \item \textbf{Solution:} MindBridge helps students organize tasks and plan workloads.
 \end{itemize}
-
-\textbf{Recommended pattern:} In \underline{context}, \underline{users} struggle with \underline{problem}. Existing approaches fall short because \underline{gap}. We designed \underline{solution} to improve \underline{outcome}.
 }
+
 
 % --- SECTION 2: MAUNICE AKALIZA ---
 \block{2. Objectives and Scope}{
-Keep this section tight and measurable.
-
 \begin{itemize}
-  \item \textbf{Objective :} To develop MindBridge, a web-based platform that simplifies
-   academic workload management and helps students avoid last-minute assignment pressure.
-  \item \textbf{Scope:} The platform enables students to import Canvas assignments, manage deadlines, and automatically convert rubric criteria into smaller, dated milestones. It focuses on improving academic organization and planning among ALU students.
-  
+  \item \textbf{Objective:} Build a web app that simplifies workload planning and reduces last-minute pressure.
+  \item \textbf{Scope:} Imports Canvas tasks, tracks deadlines, and splits rubrics into dated milestones for ALU students.
 \end{itemize}
 }
 
-% --- SECTION 3: TENDAI MTAKIWA (COMPLETED) ---
+
+% --- SECTION 3: TENDAI MTAKIWA ---
 \block{3. Project Metadata}{
 \projectmeta
-  {\textbf{Group MindBridge (Team 2):} Yves Isite (Tech Lead), Tendai Lynn Mtakiwa (Scrum Master \& QA), Muuse Muuse (Product Owner \& QA), Hakizimana Baraka Joel (Full Stack \& QA), Orla Ishimwe (Full Stack), Esther Konde (System Architect), Akaliza Alizee Maunice (PM \& QA)}
-  {BSc. in Software Engineering Foundations Project (ALU Rwanda)}
-  {Foundations Project Facilitators \& Faculty Mentors}
-  {\texttt{https://www.youtube.com/watch?v=t8HzTda-LLw}}
+  {\textbf{Team 2:} Yves Isite (Tech Lead), Tendai Lynn Mtakiwa (Scrum Master/QA), Muuse Muuse (PO/QA), Hakizimana Baraka Joel (Full Stack/QA), Orla Ishimwe (Full Stack), Esther Konde (Architect), Akaliza Alizee Maunice (PM/QA)}
+  {BSc. Software Engineering Foundations (ALU Rwanda)}
+  {Foundations Facilitators \& Faculty Mentors}
+  {\texttt{github.com/IsiteYves/mindbridge}}
+  {\texttt{https://mindbridge-u8ef.onrender.com}}
+  {\texttt{youtu.be/t8HzTda-LLw}}
 
-\vspace{0.5em}
-\begin{center}
-\qrcode[height=4.0cm]{https://www.youtube.com/watch?v=t8HzTda-LLw}
-\end{center}
 
-\vspace{0.3em}
+\vspace{0.04em}
 \begin{center}
-{\normalsize\bfseries Live app:} {\texttt{https://mindbridge-u8ef.onrender.com}}
+\qrcode[height=1.7cm]{https://youtu.be/t8HzTda-LLw}
 \end{center}
 }
+
 
 % --- SECTION 4: JOEL & ESTHER ---
 \block{4. Constraints and Design Decisions}{
-Posters are stronger when they show real engineering trade-offs.
-
 \begin{itemize}
-  \item Connectivity, power, budget, or hardware constraints
-  \item Data quality, privacy, security, or compliance issues
-  \item Why you chose this architecture, model, stack, or device setup
-  \item Main trade-off: what you optimized for, and what you sacrificed
+  \item \textbf{Security:} Fernet-encrypted Canvas tokens, PyJWT sessions, and manual import fallback.
+  \item \textbf{Stack:} React + TypeScript, Flask, and PostgreSQL for fast build and clear data tracking.
+  \item \textbf{Trade-Off:} Prioritized core planning and burnout support over clinical care or external calendar sync.
 \end{itemize}
 }
+
 
 % ================= MIDDLE =================
 \column{0.40}
 
+
 % --- SECTION 5: ORLA, JOEL & ESTHER ---
 \block{5. Proposed Solution and System Overview}{
-\takeawaybox{The centre column should be the visual anchor of the whole poster.}
-
-\begin{minipage}[t]{0.48\linewidth}
-\textbf{Solution summary}
-
-Describe the end-to-end flow in one short paragraph. Focus on what enters the system, what happens inside, and what the user gets out of it.
+\begin{minipage}[t]{0.47\linewidth}
+\textbf{How it works:} Imports Canvas assignments, splits rubrics into dated milestones, and adds a heatmap, focus timer, and reminders.
 \end{minipage}
 \hfill
-\begin{minipage}[t]{0.48\linewidth}
-\textbf{Architecture checklist}
+\begin{minipage}[t]{0.50\linewidth}
+\textbf{Tech stack}
 \begin{itemize}
-  \item Interface / frontend
-  \item Backend / services / logic
-  \item Data store / APIs / models
-  \item Devices, integrations, or deployment
+  \item \textbf{UI:} React 19, TypeScript, Vite
+  \item \textbf{API:} Flask 3.1, SQLAlchemy, PyJWT, Fernet
+  \item \textbf{Data/AI:} PostgreSQL; LangGraph review
+  \item \textbf{Integrations:} Canvas API + email alerts
 \end{itemize}
 \end{minipage}
 
-\posterimageplaceholder[0.97\linewidth]{Main system architecture, UI workflow, hardware setup, or polished prototype figure}
+
+\vspace{0.05em}
+\begin{center}
+\uifigure{figures/ui-canvas.png}{1. Canvas Import}{Token sync or manual fallback}%
+\hflowarrow{$\Rightarrow$}%
+\uifigure{figures/ui-assignments.png}{2. Upcoming Tasks}{Deadlines \& quick entry}\\[0.01em]
+\begin{minipage}[c]{0.455\linewidth}\centering{\Large\bfseries\color{MBGreenDark}$\Downarrow$}\end{minipage}%
+\hflowarrow{}%
+\begin{minipage}[c]{0.455\linewidth}\centering{\Large\bfseries\color{MBGreenDark}$\Downarrow$}\end{minipage}\\[0.01em]
+\uifigure{figures/ui-milestones.png}{3. Milestone Planner}{Dated steps, weights \& status}%
+\hflowarrow{$\Rightarrow$}%
+\uifigure{figures/ui-heatmap.png}{4. Workload Heatmap}{Monthly load \& task counts}
+\end{center}
 }
+
 
 % --- SECTION 6: YVES ISITE ---
 \block{6. Methodology and Build Process}{
-\begin{minipage}[t]{0.48\linewidth}
-\textbf{Research / discovery}
+We built MindBridge over a 4-week sprint (Oct 28 -- Nov 23, 2026) in clear steps:
 \begin{itemize}
-  \item User interviews, observation, or precedent review
-  \item Requirement gathering and feasibility checks
-  \item Risk, ethics, or context analysis
+  \item \textbf{Plan:} Reviewed ALU student workload needs and designed the React, Flask, and PostgreSQL architecture.
+  \item \textbf{Build:} Implemented Canvas import, rubric-to-milestone splitting, check-ins, focus timer, and heatmap.
+  \item \textbf{Test \& Review:} Ran automated backend tests, manual workflow checks, and a 10-student pilot review.
 \end{itemize}
-\end{minipage}
-\hfill
-\begin{minipage}[t]{0.48\linewidth}
-\textbf{Engineering / implementation}
-\begin{itemize}
-  \item Architecture and design choices
-  \item Prototype iterations and testing
-  \item Deployment, simulation, or demo setup
-\end{itemize}
-\end{minipage}
-
-\vspace{0.4em}
-\begin{center}
-\begin{tabular}{p{0.16\linewidth}p{0.76\linewidth}}
-\toprule
-\textbf{Stage} & \textbf{What to show briefly} \\
-\midrule
-Discover & users, needs, constraints, baseline findings \\
-Design & flows, architecture, rationale, sketches \\
-Build & key components, integrations, implementation choices \\
-Test & usability, speed, accuracy, reliability, feedback \\
-Iterate & what changed after evidence or testing \\
-\bottomrule
-\end{tabular}
-\end{center}
 }
+
 
 % --- SECTION 7: JOEL HAKIZIMANA ---
 \block{7. Results, Evaluation, and Demo Evidence}{
-
 \begin{center}
-\begin{minipage}{0.31\linewidth}\centering
-{\color{ALUBlue}\LARGE\bfseries 354/354}\\[-1mm]
-{\normalsize Tests passed}
-\end{minipage}\hfill
-\begin{minipage}{0.31\linewidth}\centering
-{\color{ALUBlue}\LARGE\bfseries 96\%}\\[-1mm]
-{\normalsize Task success}
-\end{minipage}\hfill
-\begin{minipage}{0.31\linewidth}\centering
-{\color{ALUBlue}\LARGE\bfseries 10}\\[-1mm]
-{\normalsize Pilot students}
+\metricbox{99.7\%}{295/296 tests passed}
+\hfill
+\metricbox{10 students}{Pilot group}
+\hfill
+\metricbox{17}{Test warnings}
+\end{center}
+
+
+\vspace{0.04em}
+\begin{minipage}[t]{0.47\linewidth}
+\textbf{What worked}
+\begin{itemize}
+  \item Canvas import, daily check-in, focus timer, and Study Plan.
+\end{itemize}
 \end{minipage}
-\end{center}
-
-\begin{center}
-\fcolorbox{ALUBlueLine}{ALUBlueLight}{
-\begin{minipage}{0.92\linewidth}\centering
-{\normalsize\bfseries Average API response time:}
-{\color{ALUBlue}\bfseries 18.51 ms}\\[-1mm]
-{\small 6 unique API endpoints | 30 requests | 5 per endpoint}
-\end{minipage}}
-\end{center}
-
-\begin{center}
-{\normalsize\bfseries User feedback:}
-{\normalsize Students reported that the Pomodoro technique helped them focus more during study sessions.}
-\end{center}
-
-\begin{center}
-\includegraphics[width=0.25\linewidth]{automated_tests.png}\hspace{4em}
-\includegraphics[width=0.25\linewidth]{api_response_times.png}
-\end{center}
-
-\begin{center}
-{\color{ALUBlue}\Large\bfseries Demo Evidence}
-\end{center}
-
-\begin{center}
-\begin{minipage}[t]{0.29\linewidth}\centering
-\includegraphics[width=\linewidth]{canvas_import.png}\\[-1mm]
-{\small\bfseries 1. Canvas import}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.29\linewidth}\centering
-\includegraphics[width=\linewidth]{daily_checkin.png}\\[-1mm]
-{\small\bfseries 2. Daily check-in}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.29\linewidth}\centering
-\includegraphics[width=\linewidth]{assignments.png}\\[-1mm]
-{\small\bfseries 3. Assignments}
+\hfill
+\begin{minipage}[t]{0.50\linewidth}
+\textbf{Issues \& next fixes}
+\begin{itemize}
+  \item Form reset bug, dashboard sync lag, and reminder logging.
+\end{itemize}
 \end{minipage}
-\end{center}
 }
-
 
 
 % ================= RIGHT =================
 \column{0.30}
 
+
 % --- SECTION 8: MUUSE MUUSE ---
 \block{8. Impact, Contribution, and Learning}{
-Frame the contribution at three levels.
-
 \begin{itemize}
-  \item \textbf{Technical:} Developed MindBridge to help students manage assignments and academic deadlines.
-Designed features to support students during stressful academic periods.
-  \item \textbf{User:} Helps students organize their workload and avoid last-minute pressure.
-Encourages students to recognize stress and seek support early.
-  \item \textbf{Research:} Learned how technology can support students' mental well-being.
-Improved our skills in teamwork, software development, testing, and problem-solving.
-  \item \textbf{Mission:} Promotes student well-being and makes academic life more manageable in African universities.
+  \item \textbf{Technical:} Built a full-stack web platform for assignment, milestone, and deadline management.
+  \item \textbf{User:} Helps students organize workload and lower academic stress.
+  \item \textbf{Research:} Showed how structured planning tools support student wellbeing.
+  \item \textbf{Mission:} Supports student success and wellbeing at ALU.
 \end{itemize}
 
+
+\vspace{0.08em}
 \takeawaybox{Making academic pressure manageable, one assignment at a time.}
 }
 
+
 % --- SECTION 9: MUUSE MUUSE ---
 \block{9. Limitations and Next Steps}{
-Strong projects acknowledge what is still unfinished.
-
 \begin{itemize}
-  \item Depends on students entering their assignments and deadlines correctly.
-
-Stress levels may not always be accurately identified.
-
-Limited testing with real students.
-
-Next Steps
-
-Test MindBridge with more students.
-
-Improve personalized reminders and support.
-
-Integrate with university learning platforms.
-
-Improve the system based on student feedback.
+  \item \textbf{Limitations:} Relies on accurate assignment/deadline data and initial 10-student pilot testing with known UI/reminder bugs.
+  \item \textbf{Next Steps:} Expand student testing, refine personalized planning support, and deepen university platform integration.
 \end{itemize}
 }
+
 
 % --- SECTION 10: MUUSE MUUSE ---
 \block{10. References and Acknowledgements}{
 \textbf{References}
-
 {\small
 \begin{itemize}
-  \item Instructure (2024). Canvas LMS REST API documentation. Source of course and assignment data for the Canvas import.
-  \item Mushumba et al. (2025). Stress and lipid profiles among Rwandan undergraduates. Shows the stress burden on students in Rwanda.
-  \item Barbayannis et al. (2022). Academic stress and mental well-being in college students. Links academic stress to poorer well-being.
-  \item Lattie et al. (2019). Digital mental health interventions for college students. Digital tools can support student well-being.
-  \item Steel (2007). The nature of procrastination. Frames procrastination as self-regulation failure, which motivates deadline planning.
+  \item Instructure (2024). Canvas LMS REST API docs. Course and assignment data.
+  \item Mushumba et al. (2025). Rwandan undergraduate stress. Local stress burden.
+  \item Barbayannis et al. (2022). Academic stress and well-being. Stress and poorer well-being.
+  \item Lattie et al. (2019). Digital mental health for students. Supports digital tools.
+  \item Steel (2007). The nature of procrastination. Motivates deadline planning.
 \end{itemize}
 }
 
-\textbf{Acknowledgements}
-We would like to thank our facilitator for the guidance, feedback, and support throughout this project.
 
-We also appreciate our teammates for their collaboration and commitment. Special thanks to Oreste Abizera and Cedric Izabayo, and to the eight other students who asked not to be named, for helping with pilot testing.
+\vspace{0.12em}
+\textbf{Acknowledgements}
+\begin{itemize}
+  \item Facilitator Hubert Apana; Oreste Abizera, Cedric Izabayo, and eight other pilot students.
+\end{itemize}
 }
 
+
 \end{columns}
+
 
 \end{document}
