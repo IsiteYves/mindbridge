@@ -1,4 +1,4 @@
-\documentclass[17pt, a0paper, landscape]{tikzposter}
+\documentclass[25pt, a0paper, landscape]{tikzposter}
 
 % ---------- Packages ----------
 \usepackage[T1]{fontenc}
@@ -13,15 +13,15 @@
 \usepackage{tikz}
 \usetikzlibrary{calc,positioning}
 
-% ---------- Green palette ----------
-\definecolor{ALUGreen}{HTML}{14532D}
-\definecolor{ALUGreenDark}{HTML}{0B3A1E}
-\definecolor{ALUGreenLight}{HTML}{EAF7EE}
-\definecolor{ALUGreenLine}{HTML}{BFE3CB}
-\definecolor{ALUText}{HTML}{1E2A22}
-\definecolor{ALUMuted}{HTML}{5C7A66}
+% ---------- ALU-inspired palette ----------
+\definecolor{ALUBlue}{HTML}{002E6D}
+\definecolor{ALUBlueDark}{HTML}{001F49}
+\definecolor{ALUBlueLight}{HTML}{EAF1FB}
+\definecolor{ALUBlueLine}{HTML}{BFD0EA}
+\definecolor{ALUText}{HTML}{1E2A38}
+\definecolor{ALUMuted}{HTML}{5C6B7A}
 \definecolor{ALUWhite}{HTML}{FFFFFF}
-\definecolor{ALUAccent}{HTML}{D4F0DD}
+\definecolor{ALUAccent}{HTML}{D9E6F7}
 
 % ---------- Theme ----------
 \usetheme{Simple}
@@ -29,10 +29,10 @@
 \usebackgroundstyle{Default}
 
 \colorlet{backgroundcolor}{ALUWhite}
-\colorlet{framecolor}{ALUGreenLine}
+\colorlet{framecolor}{ALUBlueLine}
 \colorlet{titlefgcolor}{white}
-\colorlet{titlebgcolor}{ALUGreen}
-\colorlet{blocktitlebgcolor}{ALUGreen}
+\colorlet{titlebgcolor}{ALUBlue}
+\colorlet{blocktitlebgcolor}{ALUBlue}
 \colorlet{blocktitlefgcolor}{white}
 \colorlet{blockbodybgcolor}{white}
 \colorlet{blockbodyfgcolor}{ALUText}
@@ -49,10 +49,10 @@
     bodyoffsetx=0mm, bodyoffsety=3.5mm,
     bodyverticalshift=3.5mm, linewidth=1.0mm
 }{
-    \draw[rounded corners=16pt, line width=1.1mm, color=ALUGreenLine, fill=white]
+    \draw[rounded corners=16pt, line width=1.1mm, color=ALUBlueLine, fill=white]
       (blockbody.south west) rectangle (blockbody.north east);
     \ifBlockHasTitle
-      \draw[rounded corners=16pt, line width=0mm, fill=ALUGreen]
+      \draw[rounded corners=16pt, line width=0mm, fill=ALUBlue]
       (blocktitle.south west) rectangle (blocktitle.north east);
     \fi
 }
@@ -61,7 +61,7 @@
 % ---------- Helpers ----------
 \newcommand{\takeawaybox}[1]{%
   \begin{center}
-  \fcolorbox{ALUGreenLine}{ALUGreenLight}{
+  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
     \parbox{0.94\linewidth}{\centering\bfseries\Large #1}
   }
   \end{center}
@@ -69,14 +69,14 @@
 
 \newcommand{\posterimageplaceholder}[2][0.95\linewidth]{%
   \begin{center}
-  \fcolorbox{ALUGreenLine}{ALUGreenLight}{
+  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
     \parbox[c][6.6cm][c]{#1}{\centering\bfseries\Large #2\\[0.35em]\normalsize Replace with a polished figure, screenshot, architecture diagram, chart, or hardware photo}
   }
   \end{center}
 }
 
 \newcommand{\metricbox}[2]{%
-  \fcolorbox{ALUGreenLine}{ALUGreenLight}{
+  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
     \parbox[c][2.9cm][c]{0.29\linewidth}{\centering\bfseries\LARGE #1\\[0.18em]\normalsize #2}
   }
 }
@@ -91,7 +91,7 @@
 }
 
 % ---------- Title ----------
-\title{\parbox{0.8\linewidth}{\centering MindBridge: A Technological Academic Workload Deconstruction and Burnout Mitigation Platform}}
+\title{MindBridge: A Technological Academic Workload Deconstruction and Burnout Mitigation Platform}
 \author{Tendai Lynn Mtakiwa \textbar\ Maunice Akaliza \textbar\ Yves Isite \textbar\ Orla Ishimwe \textbar\ Esther Konde \textbar\ Joel Hakizimana \textbar\ Muuse Muuse}
 \institute{African Leadership University \textbar\ BSc. in Software Engineering Foundations Project \textbar\ Group Name: MindBridge}
 \titlegraphic{\includegraphics[height=3.5cm]{alu-logo-white-full.png}}
@@ -139,11 +139,11 @@ Keep this section tight and measurable.
   {\textbf{Group MindBridge (Team 2):} Yves Isite (Tech Lead), Tendai Lynn Mtakiwa (Scrum Master \& QA), Muuse Muuse (Product Owner \& QA), Hakizimana Baraka Joel (Full Stack \& QA), Orla Ishimwe (Full Stack), Esther Konde (System Architect), Akaliza Alizee Maunice (PM \& QA)}
   {BSc. in Software Engineering Foundations Project (ALU Rwanda)}
   {Foundations Project Facilitators \& Faculty Mentors}
-  {\texttt{github.com/IsiteYves/mindbridge}}
+  {\texttt{https://www.youtube.com/watch?v=t8HzTda-LLw}}
 
 \vspace{0.5em}
 \begin{center}
-\qrcode[height=4.0cm]{https://github.com/IsiteYves/mindbridge}
+\qrcode[height=4.0cm]{https://www.youtube.com/watch?v=t8HzTda-LLw}
 \end{center}
 }
 
@@ -226,24 +226,24 @@ Iterate & what changed after evidence or testing \\
 
 \begin{center}
 \begin{minipage}{0.31\linewidth}\centering
-{\color{ALUGreen}\LARGE\bfseries 354/354}\\[-1mm]
+{\color{ALUBlue}\LARGE\bfseries 354/354}\\[-1mm]
 {\normalsize Tests passed}
 \end{minipage}\hfill
 \begin{minipage}{0.31\linewidth}\centering
-{\color{ALUGreen}\LARGE\bfseries 96\%}\\[-1mm]
+{\color{ALUBlue}\LARGE\bfseries 96\%}\\[-1mm]
 {\normalsize Task success}
 \end{minipage}\hfill
 \begin{minipage}{0.31\linewidth}\centering
-{\color{ALUGreen}\LARGE\bfseries 10}\\[-1mm]
+{\color{ALUBlue}\LARGE\bfseries 10}\\[-1mm]
 {\normalsize Pilot students}
 \end{minipage}
 \end{center}
 
 \begin{center}
-\fcolorbox{ALUGreenLine}{ALUGreenLight}{
+\fcolorbox{ALUBlueLine}{ALUBlueLight}{
 \begin{minipage}{0.92\linewidth}\centering
 {\normalsize\bfseries Average API response time:}
-{\color{ALUGreen}\bfseries 18.51 ms}\\[-1mm]
+{\color{ALUBlue}\bfseries 18.51 ms}\\[-1mm]
 {\small 6 unique API endpoints | 30 requests | 5 per endpoint}
 \end{minipage}}
 \end{center}
@@ -259,7 +259,7 @@ Iterate & what changed after evidence or testing \\
 \end{center}
 
 \begin{center}
-{\color{ALUGreen}\Large\bfseries Demo Evidence}
+{\color{ALUBlue}\Large\bfseries Demo Evidence}
 \end{center}
 
 \begin{center}
