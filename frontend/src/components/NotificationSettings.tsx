@@ -103,6 +103,7 @@ export default function NotificationSettings() {
     };
   }, []);
 
+  // A reminder with no saved preference is treated as enabled.
   const savedFor = (offset: ReminderOffset) =>
     preferences?.find((preference) => preference.offset_days === offset)?.enabled ?? true;
   const enabledFor = (offset: ReminderOffset) => draft[offset] ?? savedFor(offset);
@@ -161,7 +162,7 @@ export default function NotificationSettings() {
         ))}
       </div>
       <div className="update-row">
-        <button className="button compact" type="button" disabled={!dirty || saving} onClick={saveChanges}>
+        <button aria-busy={saving} className="button compact" type="button" disabled={!dirty || saving} onClick={saveChanges}>
           {saving ? "Updating…" : "Update"}
         </button>
       </div>

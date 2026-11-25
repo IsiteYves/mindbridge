@@ -186,3 +186,26 @@ def test_a_plan_where_every_milestone_is_done_says_so_without_findings(app, clie
     body = review(client, headers, assignment_id).get_json()
     assert body["findings"] == []
     assert body["summary"] == "All milestones are done. Nothing left to balance."
+
+
+def test_applying_the_suggestion_resolves_the_crowding_finding(app, client, make_user_headers, monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    headers = make_user_headers("student1")
+    now = dt.datetime.now(dt.timezone.utc)
+    deadline_at = now + dt.timedelta(days=5)
+    assignment_id = make_assignment(client, headers, deadline=deadline_at.isoformat())
+    first = add_milestone(client, headers, assignment_id, title="Draft", target_date=(deadline_at - dt.timedelta(hours=20)).isoformat())
+    second = add_milestone(client, headers, assignment_id, title="Final", target_date=(deadline_at - dt.timedelta(hours=30)).isoformat())
+
+    before = review(client, headers, assignment_id).get_json()
+    assert any("last two days" in f["message"] for f in before["findings"])
+    suggestion = before["replan_suggestion"]
+    assert suggestion is not None
+    assert set(suggestion["milestone_ids"]) == {first, second}
+
+    for milestone_id, target in zip(suggestion["milestone_ids"], suggestion["new_target_dates"]):
+        response = client.patch(f"/api/v1/milestones/{milestone_id}", json={"target_date": target}, headers=headers)
+        assert response.status_code == 200, response.get_json()
+
+    after = review(client, headers, assignment_id).get_json()
+    assert not any("last two days" in f["message"] for f in after["findings"])

@@ -18,6 +18,7 @@ def is_complete(items: list[Item]) -> bool:
     return total > 0 and done == total
 
 
+# Copies the list so the caller's original items are never mutated.
 def set_done(items: list[Item], index: int, done: bool) -> list[Item]:
     if not 0 <= index < len(items):
         raise IndexError("goal item index out of range")

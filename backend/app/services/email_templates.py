@@ -4,6 +4,7 @@ FONT_STACK = "Geist, Arial, Helvetica, sans-serif"
 MONO_STACK = "'Geist Mono', Menlo, Consolas, monospace"
 CODE_TTL_MINUTES = 10
 
+# Each purpose maps to (email subject, heading, intro line).
 CODE_COPY = {
     "signup": (
         "Verify your MindBridge email",
@@ -95,6 +96,7 @@ def code_email(purpose, code):
 
 
 def message_email(subject, body):
+    # Splits on blank lines so each chunk becomes its own paragraph.
     paragraphs = [chunk.strip() for chunk in body.split("\n\n") if chunk.strip()]
     inner = "".join(_paragraph(chunk) for chunk in paragraphs)
     return body, _layout(subject, inner, preheader=paragraphs[0] if paragraphs else subject)

@@ -41,6 +41,7 @@ export default function App() {
   }, [navOpen]);
 
   useEffect(() => {
+    // Wait for the saved session to be checked before routing, so pages do not flash the sign-in screen.
     restoreSession().finally(() => setRestored(true));
   }, []);
 
@@ -78,6 +79,7 @@ export default function App() {
     </Routes>
   );
 
+  // Signed-out visitors get the public header and footer; signed-in users get the app shell.
   if (!signedIn) {
     return (
       <>

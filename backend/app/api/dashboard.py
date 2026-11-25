@@ -29,6 +29,7 @@ def summary():
         counts["pending"] += 1
         if assignment.status == "in_progress":
             counts["in_progress"] += 1
+        # Week index counts 7-day blocks from today; 0 is the coming week.
         week = (assignment.deadline.date() - today).days // 7
         if 0 <= week < DEADLINE_WEEKS:
             weekly[week] += 1

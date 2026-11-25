@@ -25,6 +25,7 @@ def _planned_end(session):
     return session.started_at + dt.timedelta(minutes=session.planned_minutes)
 
 
+# A running session is closed lazily on read once its planned time has passed.
 def _close_if_expired(session, now):
     if session.ended_at is None and now >= _planned_end(session):
         session.ended_at = _planned_end(session)
@@ -135,6 +136,7 @@ def end_session(session_id):
     now = _now()
     planned_end = _planned_end(session)
     session.ended_at = min(now, planned_end)
+    # Ending at or after the planned time counts as completed; ending early does not.
     session.completed = now >= planned_end
     db.session.commit()
     return jsonify(session_json(session))

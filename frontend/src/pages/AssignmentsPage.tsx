@@ -27,6 +27,7 @@ export default function AssignmentsPage() {
 
   useEffect(() => {
     let cancelled = false;
+    // Totals use separate limit=1 queries so the counts do not depend on the current page.
     const countOf = (query: string) =>
       apiRequest<Page<Assignment>>(`/assignments?${query}&limit=1`).then(
         (result) => result.total,
@@ -35,6 +36,7 @@ export default function AssignmentsPage() {
     apiRequest<Page<Assignment>>(`/assignments?state=${view}&limit=${PAGE_SIZE}&offset=${offset}`).then(
       (list) => {
         if (cancelled) return;
+        // An older backend without the paged response shape: show a restart hint instead of crashing.
         if (!Array.isArray(list.items)) {
           setError("The server is out of date. Restart the MindBridge backend and reload.");
           return;
@@ -194,7 +196,7 @@ export default function AssignmentsPage() {
             <input name="deadline" type="datetime-local" required />
           </label>
           <div>
-            <button className="button" type="submit" disabled={busy}>
+            <button aria-busy={busy} className="button" type="submit" disabled={busy}>
               {busy ? "Adding…" : "Add assignment"}
             </button>
           </div>

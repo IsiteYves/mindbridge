@@ -163,10 +163,10 @@ def test_the_minimum_spacing_floor_is_enforced_at_its_exact_boundary():
 
 
 def test_several_open_milestones_crowded_before_the_deadline_are_flagged():
-    deadline = NOW + dt.timedelta(days=2)
+    deadline = NOW + dt.timedelta(days=5)
     milestones = [
-        {"id": 1, "title": "A", "description": None, "target_date": NOW + dt.timedelta(hours=20), "status": "not_started", "weight": None, "position": 0},
-        {"id": 2, "title": "B", "description": None, "target_date": NOW + dt.timedelta(hours=30), "status": "not_started", "weight": None, "position": 1},
+        {"id": 1, "title": "A", "description": None, "target_date": deadline - dt.timedelta(hours=20), "status": "not_started", "weight": None, "position": 0},
+        {"id": 2, "title": "B", "description": None, "target_date": deadline - dt.timedelta(hours=30), "status": "not_started", "weight": None, "position": 1},
     ]
     findings = deterministic.check_crowding(milestones, deadline, NOW)
     assert len(findings) == 1

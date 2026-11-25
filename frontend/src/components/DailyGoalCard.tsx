@@ -36,6 +36,7 @@ export default function DailyGoalCard() {
       );
     }
     load();
+    // Reload the goal whenever another part of the app reports that data changed.
     const stop = onDataChanged(load);
     return () => {
       cancelled = true;

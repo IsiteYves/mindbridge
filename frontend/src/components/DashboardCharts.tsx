@@ -25,12 +25,14 @@ const COLORS = {
 const DAY = new Intl.DateTimeFormat("en-GB", { weekday: "short" });
 const SHORT_DATE = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short" });
 
+// Parses YYYY-MM-DD as a local date; new Date(iso) would shift it a day back in western zones.
 function dayOf(iso: string): Date {
   const [year, month, day] = iso.split("-").map(Number);
   return new Date(year, month - 1, day);
 }
 
 export function StatusChart({ counts }: { counts: DashboardSummary["counts"] }) {
+  // Pending includes in-progress items, so subtract them to get the not-started count.
   const data = [
     { name: "Not started", value: counts.pending - counts.in_progress, color: COLORS.notStarted },
     { name: "In progress", value: counts.in_progress, color: COLORS.inProgress },

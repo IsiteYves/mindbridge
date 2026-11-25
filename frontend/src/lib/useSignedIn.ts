@@ -11,6 +11,7 @@ export function useSignedIn(): boolean {
   return useSyncExternalStore(
     subscribe,
     () => getToken() !== null,
+    // Used only for server rendering and hydration, where no token is available.
     () => false,
   );
 }

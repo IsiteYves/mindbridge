@@ -80,6 +80,7 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
         method: "PATCH",
         body: { current_password: currentPassword, password, confirm_password: confirm },
       });
+      // The server issues a new token because a password change signs out other sessions.
       setToken(token);
       setCurrentPassword("");
       setPassword("");
@@ -102,7 +103,7 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
             <input value={name} onChange={(event) => setName(event.target.value)} maxLength={120} required />
           </label>
           <div className="update-row">
-            <button className="button compact" type="submit" disabled={nameBusy || name.trim() === user.name}>
+            <button aria-busy={nameBusy} className="button compact" type="submit" disabled={nameBusy || name.trim() === user.name}>
               {nameBusy ? "Updating…" : "Update"}
             </button>
           </div>
@@ -129,7 +130,7 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
               />
             </label>
             <div className="update-row">
-              <button className="button compact" type="submit" disabled={emailBusy || !newEmail || !emailPassword}>
+              <button aria-busy={emailBusy} className="button compact" type="submit" disabled={emailBusy || !newEmail || !emailPassword}>
                 {emailBusy ? "Sending…" : "Send code"}
               </button>
             </div>
@@ -149,7 +150,7 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
               />
             </label>
             <div className="update-row">
-              <button className="button compact" type="submit" disabled={emailBusy || emailCode.length !== 6}>
+              <button aria-busy={emailBusy} className="button compact" type="submit" disabled={emailBusy || emailCode.length !== 6}>
                 {emailBusy ? "Confirming…" : "Update"}
               </button>
             </div>
@@ -194,7 +195,7 @@ export default function ProfileSettings({ user }: { user: CurrentUser }) {
             />
           </label>
           <div className="update-row">
-            <button className="button compact" type="submit" disabled={passwordBusy || !passwordReady}>
+            <button aria-busy={passwordBusy} className="button compact" type="submit" disabled={passwordBusy || !passwordReady}>
               {passwordBusy ? "Updating…" : "Update"}
             </button>
           </div>

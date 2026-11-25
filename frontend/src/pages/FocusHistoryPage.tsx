@@ -54,6 +54,7 @@ export default function FocusHistoryPage() {
                     <td>{formatDate(session.started_at)}</td>
                     <td>{session.planned_minutes} min</td>
                     <td>{session.actual_minutes ?? "—"} min</td>
+                    {/* "Running" means the session has no end time yet. */}
                     <td>{session.completed ? "Completed" : session.ended_at ? "Ended early" : "Running"}</td>
                   </tr>
                 ))}

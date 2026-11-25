@@ -22,6 +22,7 @@ def create_app(config=None):
     db.init_app(app)
     migrate.init_app(app, db)
 
+    # Only the /api/ routes accept cross-origin requests, and only from the configured origins.
     CORS(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}}, supports_credentials=True)
     app.register_blueprint(api_bp)
     register_error_handlers(app)

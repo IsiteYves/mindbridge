@@ -37,6 +37,7 @@ def _slip_node(state: PlanReviewState) -> dict:
     return {"slipping_ids": deterministic.detect_slipping(state["milestones"], state["now"])}
 
 
+# Crowding near the deadline triggers a replan too, not only overdue milestones.
 def _needs_replan(state: PlanReviewState) -> str:
     crowded = deterministic.check_crowding(state["milestones"], state["deadline"], state["now"])
     return "replan" if state.get("slipping_ids") or crowded else "qualitative_check"

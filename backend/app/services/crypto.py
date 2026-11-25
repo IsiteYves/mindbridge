@@ -30,11 +30,13 @@ def _aead() -> AESGCM:
 def encrypt_secret(plaintext: str) -> str:
     if not plaintext:
         raise ValueError("plaintext must be a non-empty string")
+    # Each encryption gets a fresh random nonce, stored in front of the ciphertext.
     nonce = secrets.token_bytes(NONCE_BYTES)
     sealed = _aead().encrypt(nonce, plaintext.encode(), None)
     return FORMAT_PREFIX + base64.urlsafe_b64encode(nonce + sealed).decode()
 
 
+# Returns None for any malformed, tampered or wrong-key value instead of raising.
 def decrypt_secret(ciphertext: str | None) -> str | None:
     if not ciphertext or not ciphertext.startswith(FORMAT_PREFIX):
         return None

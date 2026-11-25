@@ -18,6 +18,7 @@ export default function VerifyEmailPage() {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
+    // Tick once a second only while the resend cooldown is running.
     if (resendAt <= Date.now()) return;
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
@@ -62,6 +63,7 @@ export default function VerifyEmailPage() {
       startCooldown(RESEND_COOLDOWN_SECONDS);
     } catch (err) {
       setError(errorMessage(err));
+      // The server may say how many seconds to wait before another code can be sent.
       if (err instanceof ApiError && typeof err.details.retry_after === "number") {
         startCooldown(err.details.retry_after);
       }
@@ -89,7 +91,7 @@ export default function VerifyEmailPage() {
         </label>
         {notice && <p className="notice">{notice}</p>}
         {error && <p className="error">{error}</p>}
-        <button className="button" type="submit" disabled={busy || code.length !== 6}>
+        <button aria-busy={busy} className="button" type="submit" disabled={busy || code.length !== 6}>
           {busy ? "Verifying…" : "Verify and continue"}
         </button>
         <button className="button secondary" type="button" onClick={resend} disabled={!email || secondsLeft > 0}>
