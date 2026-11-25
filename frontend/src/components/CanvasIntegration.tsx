@@ -28,6 +28,7 @@ export default function CanvasIntegration() {
     setSelected((current) => (current.includes(id) ? current.filter((c) => c !== id) : [...current, id]));
   }
 
+  // Shared wrapper: sets one busy flag and turns any thrown error into a toast.
   async function run(action: () => Promise<void>) {
     setBusy(true);
     try {
@@ -70,6 +71,7 @@ export default function CanvasIntegration() {
     });
   }
 
+  // A new token is saved and synced together with the chosen courses in one request.
   function connectWithToken() {
     return run(async () => {
       const result = await apiRequest<CanvasSyncResult>("/canvas/connect", {
@@ -105,7 +107,7 @@ export default function CanvasIntegration() {
         />
       </label>
       <div className="actions-row">
-        <button className="button" type="submit" disabled={busy || !token}>
+        <button aria-busy={busy} className="button" type="submit" disabled={busy || !token}>
           Load my courses
         </button>
       </div>
@@ -128,10 +130,10 @@ export default function CanvasIntegration() {
             Canvas.
           </p>
           <div className="actions-row">
-            <button type="button" className="button secondary" disabled={busy} onClick={changeCourses}>
+            <button aria-busy={busy} type="button" className="button secondary" disabled={busy} onClick={changeCourses}>
               Change courses
             </button>
-            <button type="button" className="button secondary" disabled={busy} onClick={() => setConfirmingDisconnect(true)}>
+            <button aria-busy={busy} type="button" className="button secondary" disabled={busy} onClick={() => setConfirmingDisconnect(true)}>
               Disconnect
             </button>
             <ConfirmDialog
@@ -178,7 +180,7 @@ export default function CanvasIntegration() {
             ))}
           </ul>
           <div className="actions-row">
-            <button
+            <button aria-busy={busy}
               type="button"
               className="button"
               disabled={busy || selected.length === 0}

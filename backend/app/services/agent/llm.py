@@ -51,6 +51,7 @@ def _build_model():
     return ChatAnthropic(model=model_name, max_tokens=MAX_OUTPUT_TOKENS, timeout=20, max_retries=0)
 
 
+# Collapses whitespace and cuts overlong replies at a word boundary.
 def _clean_reply(text: str) -> str:
     cleaned = " ".join(text.split())
     if len(cleaned) > MAX_REPLY_CHARACTERS:

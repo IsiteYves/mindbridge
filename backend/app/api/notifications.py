@@ -150,6 +150,7 @@ def dismiss_all():
         Reminder.sent_at.isnot(None),
         Reminder.dismissed_at.is_(None),
     )
+    # No kinds given (or an empty list) dismisses every kind.
     if kinds:
         query = query.filter(Reminder.kind.in_(kinds))
     dismissed = query.update({"dismissed_at": dt.datetime.now(dt.timezone.utc)}, synchronize_session=False)

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import { type FocusSession, apiRequest, errorMessage } from "@/lib/api";
+import { notifyDataChanged } from "@/lib/dataEvents";
 import { toast } from "@/lib/toast";
 
 const PRESETS = [15, 25, 45, 60];
@@ -45,6 +46,7 @@ export default function FocusTimerCard() {
       ({ session: active }) => {
         if (cancelled || !active) return;
         setSession(active);
+        // Resume from the server's remaining seconds, not a browser-stored end time.
         setEndsAt(Date.now() + (active.remaining_seconds ?? 0) * 1000);
       },
       () => undefined,
@@ -57,6 +59,7 @@ export default function FocusTimerCard() {
     };
   }, []);
 
+  // Guards against ending the same session twice, e.g. the timer tick and a Stop click.
   const endingRef = useRef(false);
 
   const endSession = useCallback(async (id: number) => {
@@ -68,6 +71,7 @@ export default function FocusTimerCard() {
       setResult(ended);
       setSession(null);
       setTodayCount(await fetchTodayCount());
+      notifyDataChanged();
     } catch (err) {
       toast.error(errorMessage(err));
       setSession(null);
@@ -77,6 +81,7 @@ export default function FocusTimerCard() {
     }
   }, []);
 
+  // Ticks each second and auto-ends the session once its end time has passed.
   useEffect(() => {
     if (!session) return;
     const id = window.setInterval(() => {
@@ -130,11 +135,11 @@ export default function FocusTimerCard() {
       {result && !session && <p className="notice">{resultText(result)}</p>}
       <div className="focus-timer-actions">
         {session ? (
-          <button type="button" className="button secondary" disabled={busy} onClick={() => endSession(session.id)}>
+          <button aria-busy={busy} type="button" className="button secondary" disabled={busy} onClick={() => endSession(session.id)}>
             Stop
           </button>
         ) : (
-          <button type="button" className="button" disabled={busy} onClick={start}>
+          <button aria-busy={busy} type="button" className="button" disabled={busy} onClick={start}>
             Start
           </button>
         )}

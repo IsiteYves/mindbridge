@@ -31,6 +31,7 @@ export default function AssignmentSearchPage() {
     });
     if (from) params.set("from", from);
     if (to) params.set("to", to);
+    // Debounce: wait 250ms after the last change before querying, so typing does not fire a request per key.
     const timer = window.setTimeout(() => {
       apiRequest<Page<Assignment>>(`/assignments?${params.toString()}`).then(
         (result) => {
@@ -45,6 +46,7 @@ export default function AssignmentSearchPage() {
     };
   }, [query, state, from, to, newestFirst, offset, refresh]);
 
+  // Any filter change goes back to the first page of results.
   function changeFilter<T>(setter: (value: T) => void, value: T) {
     setter(value);
     setOffset(0);

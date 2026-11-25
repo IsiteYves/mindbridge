@@ -45,6 +45,7 @@ class CanvasClient:
                 raise CanvasError("Canvas returned an unexpected response", 502)
             results.extend(page)
             url = self._next_url(response)
+            # Later pages come from the next link, which already carries the query params.
             params = None
         return results
 
@@ -63,6 +64,7 @@ class CanvasClient:
         url = response.links.get("next", {}).get("url")
         if url:
             base, target = urlparse(self.base_url), urlparse(url)
+            # Only follow pagination on the same host, so the access token is never sent elsewhere.
             if (target.scheme, target.netloc) != (base.scheme, base.netloc):
                 raise CanvasError("Canvas pagination pointed to an unexpected host", 502)
         return url
@@ -71,6 +73,7 @@ class CanvasClient:
 SUBMITTED_STATES = {"submitted", "graded", "pending_review"}
 
 
+# Canvas can mark a submission by workflow state or by a submitted timestamp; either counts.
 def _is_submitted(submission):
     if not isinstance(submission, dict):
         return False

@@ -21,6 +21,7 @@ export default function DashboardPage() {
       );
     }
     load();
+    // Reload the summary whenever another part of the app changes data.
     const stop = onDataChanged(load);
     return () => {
       cancelled = true;

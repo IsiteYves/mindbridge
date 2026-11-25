@@ -108,6 +108,7 @@ def connect():
         db.session.add(integration)
     integration.status = "connected"
     integration.access_token_encrypted = encrypt_secret(token)
+    # Drop duplicate course ids but keep the order the student picked them in.
     integration.selected_course_ids = list(dict.fromkeys(str(c) for c in course_ids))
     integration.last_synced_at = dt.datetime.now(dt.timezone.utc)
     db.session.commit()
@@ -120,6 +121,7 @@ def _stored_token(user_id):
     integration = _integration_for(user_id)
     if integration is None or integration.status != "connected" or not integration.access_token_encrypted:
         raise CanvasError("Canvas is not connected yet. Connect it first.", 409)
+    # An unreadable token means the encryption key changed or the stored value is damaged.
     token = decrypt_secret(integration.access_token_encrypted)
     if token is None:
         integration.status = "disconnected"

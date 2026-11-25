@@ -71,6 +71,7 @@ export default function PlanPage() {
     reminder.kind === "deadline" ? shown.deadlines : shown.milestones,
   );
   const visibleMilestones = shown.milestones ? schedule.milestones : [];
+  // True when stress-based slack has pulled the suggested milestone dates earlier.
   const adjusted = schedule.slack_fraction > 0;
   const slackPercent = Math.round(schedule.slack_fraction * 100);
 

@@ -28,6 +28,7 @@ function criteriaDrafts(rubric: RubricCriterion[] | undefined): CriterionDraft[]
   }));
 }
 
+// Returns null for a blank weight, undefined for an invalid one, otherwise the integer 0-100.
 function parseWeight(value: string): number | null | undefined {
   const trimmed = value.trim();
   if (trimmed === "") return null;
@@ -61,6 +62,7 @@ export default function AssignmentView({ id }: { id: string }) {
   }
 
   useEffect(() => {
+    // Ignore responses that arrive after unmount or after the id changes.
     let cancelled = false;
     fetchAssignment().then(
       (loaded) => {
@@ -124,6 +126,7 @@ export default function AssignmentView({ id }: { id: string }) {
     setCriteria(criteria.map((draft, i) => (i === index ? { ...draft, [field]: value } : draft)));
   }
 
+  // Swaps with the neighbour, then saves the full order; target dates are left unchanged.
   async function reorder(fromIndex: number, toIndex: number) {
     if (toIndex < 0 || toIndex >= milestones.length) return;
     const next = [...milestones];
@@ -282,7 +285,7 @@ export default function AssignmentView({ id }: { id: string }) {
               </label>
             )}
           </div>
-          <button className="button" type="submit" disabled={busy || !pending}>
+          <button aria-busy={busy} className="button" type="submit" disabled={busy || !pending}>
             {busy ? "Generating…" : "Generate milestones"}
           </button>
           {assignment && !assignment.deadline && (
@@ -389,7 +392,7 @@ function MilestoneRow({
   return (
     <li className="milestone-row">
       <div className="reorder-controls">
-        <button
+        <button aria-busy={busy}
           type="button"
           className="reorder-button"
           disabled={isFirst || busy}
@@ -398,7 +401,7 @@ function MilestoneRow({
         >
           ↑
         </button>
-        <button
+        <button aria-busy={busy}
           type="button"
           className="reorder-button"
           disabled={isLast || busy}
@@ -444,10 +447,10 @@ function MilestoneRow({
             ))}
           </select>
         </label>
-        <button className="button" type="submit" disabled={busy || !changed}>
+        <button aria-busy={busy} className="button" type="submit" disabled={busy || !changed}>
           Save
         </button>
-        <button
+        <button aria-busy={busy}
           className="button secondary"
           type="button"
           disabled={busy}
@@ -535,7 +538,7 @@ function AddMilestoneForm({
         Weight %
         <input type="number" min={0} max={100} value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="—" />
       </label>
-      <button className="button" type="submit" disabled={busy || !title.trim() || !target}>
+      <button aria-busy={busy} className="button" type="submit" disabled={busy || !title.trim() || !target}>
         {busy ? "Adding…" : "Add milestone"}
       </button>
     </form>

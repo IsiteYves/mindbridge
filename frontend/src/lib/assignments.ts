@@ -4,6 +4,7 @@ export function isPending(assignment: Pick<Assignment, "status" | "deadline">, n
   return assignment.status !== "done" && assignment.deadline !== null && new Date(assignment.deadline).getTime() > now;
 }
 
+// Unfinished assignments past their deadline show as Closed, not Pending.
 export function stateLabel(assignment: Pick<Assignment, "status" | "deadline">): string {
   if (isPending(assignment)) return "Pending";
   return assignment.status === "done" ? "Submitted" : "Closed";

@@ -9,6 +9,7 @@ class MailError(Exception):
     """Raised when an email cannot be sent. The message is safe to show to users."""
 
 
+# Always upgrades to TLS; login runs only when an SMTP user is configured.
 def _deliver(to, subject, text, html_body):
     host = current_app.config.get("SMTP_HOST")
     if not host:
@@ -32,6 +33,7 @@ def _deliver(to, subject, text, html_body):
 
 def send_code(to, purpose, code):
     
+    # A MAILER config hook replaces real delivery, used by tests and local development.
     custom = current_app.config.get("MAILER")
     if custom is not None:
         custom(to, purpose, code)

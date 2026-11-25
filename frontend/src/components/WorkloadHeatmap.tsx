@@ -64,6 +64,7 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
   const gridFirstDay = useMemo(() => gridStart(monthStart), [monthStart]);
 
   useEffect(() => {
+    // With no type selected there is nothing to fetch, and the grid shows no counts.
     if (!kindsParam) return;
     let cancelled = false;
     const scope = assignmentId ? `&assignment_id=${assignmentId}` : "";
@@ -89,6 +90,7 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
     };
   }, [monthStart, monthEnd, assignmentId, kindsParam, revision]);
 
+  // Bumping revision re-runs the month fetch after another component changes data.
   useEffect(() => onDataChanged(() => setRevision((value) => value + 1)), []);
 
   function changeMonth(delta: number) {

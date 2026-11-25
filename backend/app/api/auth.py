@@ -56,6 +56,7 @@ def _hash_refresh(raw):
 
 def _session_response(user, status=200):
     raw = secrets.token_urlsafe(32)
+    # Only a hash of the refresh token is stored; the raw value goes to the cookie only.
     db.session.add(
         RefreshToken(
             user_id=user.id,
@@ -183,6 +184,7 @@ def register():
     )
 
     code = issue_code(user, "signup")
+    # Mail is sent before the commit, so a mail failure rolls the new account back.
     try:
         send_code(email, "signup", code)
     except MailError:
@@ -301,6 +303,7 @@ def refresh():
     ended = "Your session has ended. Please sign in again."
     if row is None or row.expires_at <= now:
         return _end_session_response(ended)
+    # A token rotated moments ago is still accepted, so parallel refresh calls do not log the user out.
     if row.revoked_at is not None and now - row.revoked_at > REFRESH_REUSE_GRACE:
         return _end_session_response(ended)
     user = db.session.get(User, row.user_id)
