@@ -15,6 +15,7 @@ export default function SiteFooter() {
           <nav className="footer-links" aria-label="Footer">
             <Link to="/login">Sign in</Link>
             <Link to="/register">Create account</Link>
+            <Link to="/contact">Contact us</Link>
           </nav>
         </div>
       </div>

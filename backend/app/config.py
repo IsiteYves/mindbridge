@@ -15,6 +15,7 @@ class Config:
     SMTP_USER = os.environ.get("SMTP_USER")
     SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
     SMTP_FROM = os.environ.get("SMTP_FROM") or os.environ.get("SMTP_USER") or "MindBridge <no-reply@localhost>"
+    CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL")
     TOKEN_ENCRYPTION_KEY = os.environ.get("TOKEN_ENCRYPTION_KEY")
     CORS_ORIGINS = [origin.strip() for origin in os.environ.get("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if origin.strip()]
     # Off by default for local HTTP development; turn on for any HTTPS deployment.

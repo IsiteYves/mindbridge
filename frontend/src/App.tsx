@@ -7,6 +7,8 @@ import PublicHeader from "@/components/PublicHeader";
 import SiteFooter from "@/components/SiteFooter";
 import ToastHost from "@/components/ToastHost";
 import AssignmentDetailPage from "@/pages/AssignmentDetailPage";
+import ContactPage from "@/pages/ContactPage";
+import FeedbackPage from "@/pages/FeedbackPage";
 import AssignmentSearchPage from "@/pages/AssignmentSearchPage";
 import DashboardPage from "@/pages/DashboardPage";
 import AssignmentsPage from "@/pages/AssignmentsPage";
@@ -74,6 +76,8 @@ export default function App() {
       <Route path="/focus/history" element={guard(<FocusHistoryPage />)} />
       <Route path="/assignments/:id" element={guard(<AssignmentDetailPage />)} />
       <Route path="/settings" element={guard(<SettingsPage />)} />
+      <Route path="/feedback" element={guard(<FeedbackPage />)} />
+      <Route path="/contact" element={<ContactPage />} />
       <Route path="/planning-guide" element={guard(<PlanningGuidePage />)} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

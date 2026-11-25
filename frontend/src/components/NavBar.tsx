@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, ClipboardList, CloudDownload, HeartPulse, LayoutDashboard, LogOut, Settings } from "lucide-react";
+import { BookOpen, CalendarDays, ClipboardList, CloudDownload, HeartPulse, LayoutDashboard, LogOut, MessageSquare, Settings } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
 
@@ -64,6 +64,15 @@ export default function NavBar({ open, onClose }: { open: boolean; onClose: () =
         >
           <BookOpen size={18} strokeWidth={1.75} aria-hidden="true" />
           Planning guide
+        </Link>
+        <Link
+          to="/feedback"
+          className={`nav-link${isActive("/feedback") ? " active" : ""}`}
+          aria-current={isActive("/feedback") ? "page" : undefined}
+          onClick={onClose}
+        >
+          <MessageSquare size={18} strokeWidth={1.75} aria-hidden="true" />
+          Feedback
         </Link>
         <Link
           to="/settings"

@@ -10,7 +10,7 @@ class MailError(Exception):
 
 
 # Always upgrades to TLS; login runs only when an SMTP user is configured.
-def _deliver(to, subject, text, html_body):
+def _deliver(to, subject, text, html_body, reply_to=None):
     host = current_app.config.get("SMTP_HOST")
     if not host:
         raise MailError("Email sending is not configured on this server")
@@ -19,6 +19,8 @@ def _deliver(to, subject, text, html_body):
     message["Subject"] = subject
     message["From"] = current_app.config["SMTP_FROM"]
     message["To"] = to
+    if reply_to:
+        message["Reply-To"] = reply_to
     message.set_content(text)
     message.add_alternative(html_body, subtype="html")
     try:
@@ -50,3 +52,13 @@ def send_reminder_email(to, subject, body):
         return
     text, html_body = message_email(subject, body)
     _deliver(to, subject, text, html_body)
+
+
+def send_contact_message(to, name, sender_email, subject, body):
+    custom = current_app.config.get("CONTACT_MAILER")
+    if custom is not None:
+        custom(to, name, sender_email, subject, body)
+        return
+    heading = f"Contact: {subject}"
+    text, html_body = message_email(heading, f"From {name} <{sender_email}>\n\n{body}")
+    _deliver(to, heading, text, html_body, reply_to=sender_email)
