@@ -1,4 +1,4 @@
-\documentclass[25pt, a0paper, landscape]{tikzposter}
+\documentclass[17pt, a0paper, landscape]{tikzposter}
 
 % ---------- Packages ----------
 \usepackage[T1]{fontenc}
@@ -70,7 +70,7 @@
 \newcommand{\posterimageplaceholder}[2][0.95\linewidth]{%
   \begin{center}
   \fcolorbox{ALUBlueLine}{ALUBlueLight}{
-    \parbox[c][6.6cm][c]{#1}{\centering\bfseries\Large #2\\[0.35em]\normalsize Replace with a polished figure, screenshot, architecture diagram, chart, or hardware photo}
+    \parbox[c][3.4cm][c]{#1}{\centering\bfseries\Large #2\\[0.35em]\normalsize Replace with a polished figure, screenshot, architecture diagram, chart, or hardware photo}
   }
   \end{center}
 }
@@ -91,7 +91,7 @@
 }
 
 % ---------- Title ----------
-\title{MindBridge: A Technological Academic Workload Deconstruction and Burnout Mitigation Platform}
+\title{\parbox{0.8\linewidth}{\centering MindBridge: A Technological Academic Workload Deconstruction and Burnout Mitigation Platform}}
 \author{Tendai Lynn Mtakiwa \textbar\ Maunice Akaliza \textbar\ Yves Isite \textbar\ Orla Ishimwe \textbar\ Esther Konde \textbar\ Joel Hakizimana \textbar\ Muuse Muuse}
 \institute{African Leadership University \textbar\ BSc. in Software Engineering Foundations Project \textbar\ Group Name: MindBridge}
 \titlegraphic{\includegraphics[height=3.5cm]{alu-logo-white-full.png}}
@@ -113,7 +113,7 @@
   \item ALU students struggle with large assignments, overlapping deadlines, 
   and academic stress. Existing platforms such as Canvas provide deadlines 
   but do not break assignments into manageable tasks. 
-  An initial survey found that 83% of respondents experienced moderate to
+  An initial survey found that 83\% of respondents experienced moderate to
    very high academic stress. MindBridge addresses this challenge by helping 
    students organize assignments and plan their workload. 
 \end{itemize}
@@ -223,33 +223,65 @@ Iterate & what changed after evidence or testing \\
 
 % --- SECTION 7: JOEL HAKIZIMANA ---
 \block{7. Results, Evaluation, and Demo Evidence}{
+
 \begin{center}
-\metricbox{95\%}{Task success}
-\hfill
-\metricbox{1.8s}{Avg. response}
-\hfill
-\metricbox{12}{Pilot users}
+\begin{minipage}{0.31\linewidth}\centering
+{\color{ALUBlue}\LARGE\bfseries 354/354}\\[-1mm]
+{\normalsize Tests passed}
+\end{minipage}\hfill
+\begin{minipage}{0.31\linewidth}\centering
+{\color{ALUBlue}\LARGE\bfseries 96\%}\\[-1mm]
+{\normalsize Task success}
+\end{minipage}\hfill
+\begin{minipage}{0.31\linewidth}\centering
+{\color{ALUBlue}\LARGE\bfseries 10}\\[-1mm]
+{\normalsize Pilot students}
+\end{minipage}
 \end{center}
 
-\vspace{0.5em}
-\begin{minipage}[t]{0.48\linewidth}
-\begin{itemize}
-  \item Show 2--4 quantitative results only
-  \item Include one user or field insight if relevant
-  \item Compare against a baseline where possible
-\end{itemize}
-\begin{center}\fcolorbox{ALUBlueLine}{ALUBlueLight}{\parbox[c][3.7cm][c]{0.95\linewidth}{\centering\bfseries\Large Chart, benchmark, confusion matrix, or evaluation table}}\end{center}
+
+\begin{center}
+\fcolorbox{ALUBlueLine}{ALUBlueLight}{
+\begin{minipage}{0.92\linewidth}\centering
+{\normalsize\bfseries Average API response time:}
+{\color{ALUBlue}\bfseries 18.51 ms}\\[-1mm]
+{\small 6 unique API endpoints | 30 requests | 5 per endpoint}
+\end{minipage}}
+\end{center}
+
+
+\begin{center}
+{\normalsize\bfseries User feedback:}
+{\normalsize Students reported that the Pomodoro technique helped them focus more during study sessions.}
+\end{center}
+
+
+\begin{center}
+\includegraphics[width=0.28\linewidth]{automated_tests.png}\hspace{4em}
+\includegraphics[width=0.28\linewidth]{api_response_times.png}
+\end{center}
+
+
+\begin{center}
+{\color{ALUBlue}\Large\bfseries Demo Evidence}
+\end{center}
+
+\begin{center}
+\begin{minipage}[t]{0.31\linewidth}\centering
+\includegraphics[width=\linewidth]{canvas_import.png}\\[-1mm]
+{\small\bfseries 1. Canvas import}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.31\linewidth}\centering
+\includegraphics[width=\linewidth]{daily_checkin.png}\\[-1mm]
+{\small\bfseries 2. Daily check-in}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.31\linewidth}\centering
+\includegraphics[width=\linewidth]{assignments.png}\\[-1mm]
+{\small\bfseries 3. Assignments}
 \end{minipage}
-\hfill
-\begin{minipage}[t]{0.48\linewidth}
-\begin{itemize}
-  \item What can be demonstrated live today?
-  \item Which workflow is fully working?
-  \item What remains simulated or partial?
-\end{itemize}
-\begin{center}\fcolorbox{ALUBlueLine}{ALUBlueLight}{\parbox[c][3.7cm][c]{0.95\linewidth}{\centering\bfseries\Large Demo storyboard, product screenshot, or device photo}}\end{center}
-\end{minipage}
+\end{center}
 }
+
 
 % ================= RIGHT =================
 \column{0.30}
