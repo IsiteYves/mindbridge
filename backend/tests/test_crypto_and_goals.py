@@ -106,7 +106,9 @@ def test_a_tampered_ciphertext_is_rejected():
 
 
 def test_each_encryption_uses_a_fresh_nonce():
-    assert crypto.encrypt_secret("same") != crypto.encrypt_secret("same")
+    first = crypto.encrypt_secret("same")
+    second = crypto.encrypt_secret("same")
+    assert first != second
 
 
 def test_stored_format_is_versioned_and_hides_the_plaintext():

@@ -42,7 +42,7 @@ export default function App() {
 
   useEffect(() => {
     // Wait for the saved session to be checked before routing, so pages do not flash the sign-in screen.
-    restoreSession().finally(() => setRestored(true));
+    void restoreSession().finally(() => setRestored(true));
   }, []);
 
   if (!restored) {
