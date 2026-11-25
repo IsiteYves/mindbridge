@@ -11,6 +11,7 @@ def weighted_targets(weights, start, deadline):
         return []
 
     usable = [float(w) for w in weights if isinstance(w, (int, float)) and w > 0]
+    # Falls back to even spacing when any weight is missing or not positive.
     if len(usable) != count:
         return milestone_targets(count, start, deadline)
 

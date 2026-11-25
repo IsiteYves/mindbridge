@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { Link } from "react-router";
 
 const STEPS = [
@@ -30,7 +32,32 @@ const BENEFITS = [
   },
 ];
 
+const FAQS = [
+  {
+    question: "What is MindBridge?",
+    answer: "A planning tool that turns your assignment deadlines into milestones, shows what is due, and reminds you by email.",
+  },
+  {
+    question: "Do I need Canvas?",
+    answer: "No. You can add assignments by hand. Canvas import is optional and saves time when your courses are already there.",
+  },
+  {
+    question: "How is my Canvas token protected?",
+    answer: "It is stored encrypted and is used only to read your courses and assignments. You can disconnect at any time.",
+  },
+  {
+    question: "Does MindBridge diagnose or treat mental health?",
+    answer: "No. Daily check-ins only adjust how much time is left in your plan. MindBridge is not a medical service.",
+  },
+  {
+    question: "How are reminders sent?",
+    answer: "By email, at the times you choose in Settings. You can turn off any reminder.",
+  },
+];
+
 export default function HomePage() {
+  const [openFaq, setOpenFaq] = useState<string | null>(null);
+
   return (
     <div className="landing">
       <section className="hero">
@@ -75,6 +102,36 @@ export default function HomePage() {
               <p>{benefit.body}</p>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section>
+        <div className="section-heading">
+          <h2>Questions</h2>
+        </div>
+        <div className="faq-list">
+          {FAQS.map((item, index) => {
+            const open = openFaq === item.question;
+            return (
+              <div className={`faq-item${open ? " open" : ""}`} key={item.question}>
+                <button
+                  type="button"
+                  className="faq-question"
+                  id={`faq-button-${index}`}
+                  aria-expanded={open}
+                  aria-controls={`faq-panel-${index}`}
+                  onClick={() => setOpenFaq(open ? null : item.question)}
+                >
+                  {item.question}
+                </button>
+                <div className="faq-answer" id={`faq-panel-${index}`} role="region" aria-labelledby={`faq-button-${index}`}>
+                  <div>
+                    <p>{item.answer}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 

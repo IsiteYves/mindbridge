@@ -28,6 +28,7 @@ export default function LoginPage() {
     }
   }
 
+  // The API answers 403 when the account exists but its email is not verified yet.
   const needsVerification = error?.status === 403;
 
   return (
@@ -58,7 +59,7 @@ export default function LoginPage() {
             )}
           </p>
         )}
-        <button className="button" type="submit" disabled={busy}>
+        <button aria-busy={busy} className="button" type="submit" disabled={busy}>
           {busy ? "Signing in…" : "Sign in"}
         </button>
       </form>

@@ -11,8 +11,10 @@ from app.services.reminders import fire_new_item_reminder
 
 def sync_courses(user, client, course_ids):
     course_names = {course["id"]: course["name"] for course in client.list_courses()}
+    # Dedupes course ids while keeping their original order.
     wanted = list(dict.fromkeys(str(c) for c in course_ids))
     unknown = [c for c in wanted if c not in course_names]
+    # Reject the whole import if any requested course is not active for this account.
     if unknown:
         raise CanvasError(f"Not active Canvas courses for this account: {', '.join(unknown)}", 400)
 
@@ -45,6 +47,7 @@ def sync_courses(user, client, course_ids):
             assignment.title = item["title"]
             assignment.deadline = deadline
             assignment.rubric = item["rubric"]
+            # Canvas decides done state: submitted marks done, and a previously done item reopens if unsubmitted.
             submitted = bool(item.get("submitted"))
             if submitted:
                 assignment.status = "done"

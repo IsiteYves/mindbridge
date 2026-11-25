@@ -15,6 +15,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "integrations", label: "Integrations" },
 ];
 
+// Older links use ?section=integration; map them to the current tab id.
 const SECTION_ALIASES: Record<string, TabId> = { integration: "integrations" };
 
 function initialTab(requested: string | null): TabId {

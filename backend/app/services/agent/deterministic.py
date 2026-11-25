@@ -29,6 +29,7 @@ MIN_HOURS_BETWEEN_TARGETS = 4
 
 CROWD_WINDOW = dt.timedelta(hours=48)
 CROWD_MIN_MILESTONES = 2
+CROWD_MIN_REMAINING = dt.timedelta(hours=72)
 
 
 def _title_words(title: str) -> set[str]:
@@ -95,8 +96,9 @@ def check_balance(rubric: list[RubricCriterionFacts], milestones: list[Milestone
     return findings
 
 
+# Flags when several open milestones are packed into the final window before the deadline.
 def check_crowding(milestones: list[MilestoneFacts], deadline: dt.datetime | None, now: dt.datetime) -> list[Finding]:
-    if deadline is None:
+    if deadline is None or deadline - now < CROWD_MIN_REMAINING:
         return []
     window_start = deadline - CROWD_WINDOW
     crowded = [
@@ -121,6 +123,7 @@ def detect_slipping(milestones: list[MilestoneFacts], now: dt.datetime) -> list[
     return [m["id"] for m in milestones if m["status"] != "done" and m["target_date"] < now]
 
 
+# Targets must fall strictly inside the window and stay at least the minimum gap apart.
 def _valid_targets(targets: list[dt.datetime], now: dt.datetime, deadline: dt.datetime) -> bool:
     if not targets:
         return False

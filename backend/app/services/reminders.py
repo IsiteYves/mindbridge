@@ -63,6 +63,7 @@ def _claim_and_send(*, user, assignment, milestone, kind, offset_days, today, ti
         fired_for_date=today,
         sent_at=None,
     )
+    # Insert first so a duplicate run hits the unique constraint and skips the send.
     db.session.add(reminder)
     try:
         db.session.commit()
@@ -70,6 +71,7 @@ def _claim_and_send(*, user, assignment, milestone, kind, offset_days, today, ti
         db.session.rollback()
         return False  
 
+    # If sending fails, release the claim so a later run can retry.
     try:
         send_reminder_email(user.email, _subject_for(kind), _body_for(kind, title, course, when, offset_days))
     except MailError:
@@ -144,6 +146,7 @@ def fire_new_item_reminder(user: User, assignment: Assignment, milestone: Milest
     target = milestone.target_date if milestone else assignment.deadline
     if target is None:
         return
+    # A reminder failure must never break the caller's save, so errors are rolled back and ignored.
     try:
         _claim_and_send(
             user=user, assignment=assignment, milestone=milestone, kind="new_item", offset_days=None,

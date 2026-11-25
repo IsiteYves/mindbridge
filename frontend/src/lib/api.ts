@@ -159,6 +159,7 @@ export function clearToken(): void {
   notifyAuthChanged();
 }
 
+// Shares one in-flight refresh so parallel 401s do not each call /auth/refresh.
 let refreshing: Promise<boolean> | null = null;
 
 function refreshAccessToken(): Promise<boolean> {
@@ -206,6 +207,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   let response: Response;
   try {
     response = await send(path, options, sentToken);
+    // Retry once after a 401 with a refreshed token; auth and Canvas routes skip this.
     if (response.status === 401 && sentToken && usesSession && (await refreshAccessToken())) {
       response = await send(path, options, getToken());
     }

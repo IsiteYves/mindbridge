@@ -21,6 +21,7 @@ export default function ImportPage() {
     try {
       const synced = await apiRequest<CanvasSyncResult>("/canvas/sync", { method: "POST" });
       setResult(synced);
+      // The sync response includes the updated connection, so no second status fetch is needed.
       setStatus(synced.connection);
       toast.success("Canvas synced.");
     } catch (err) {
@@ -52,7 +53,7 @@ export default function ImportPage() {
               {status.last_synced_at ? formatDate(status.last_synced_at) : "never"}.
             </p>
             <div className="actions-row">
-              <button type="button" className="button" disabled={busy} onClick={syncNow}>
+              <button aria-busy={busy} type="button" className="button" disabled={busy} onClick={syncNow}>
                 {busy ? "Syncing…" : "Sync now"}
               </button>
               <Link to="/settings?section=integration" className="button secondary">

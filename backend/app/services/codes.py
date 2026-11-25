@@ -15,6 +15,7 @@ def _now():
     return dt.datetime.now(dt.timezone.utc)
 
 
+# Newest first; the id breaks ties when two codes share a timestamp.
 def _latest(user_id, purpose):
     return (
         db.session.query(VerificationCode)
@@ -64,6 +65,7 @@ def check_code(user, purpose, code):
     if record is None:
         return False
 
+    # An expired or over-attempted code is deleted, so it cannot be retried.
     if record.expires_at <= _now() or record.attempts >= MAX_ATTEMPTS:
         db.session.delete(record)
         db.session.commit()

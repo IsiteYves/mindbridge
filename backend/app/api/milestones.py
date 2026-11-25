@@ -227,6 +227,7 @@ def update_milestone(milestone_id):
         if data["status"] not in STATUSES:
             return jsonify(error=f"status must be one of {', '.join(STATUSES)}"), 400
         milestone.status = data["status"]
+        # Starting work on a milestone also moves an unstarted assignment to in_progress.
         if milestone.status == "in_progress" and milestone.assignment.status == "not_started":
             milestone.assignment.status = "in_progress"
 

@@ -24,6 +24,7 @@ export default function ConfirmDialog({
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
+  // Escape is intercepted so it goes through onCancel, the same path as the Cancel button.
   return (
     <dialog
       ref={ref}

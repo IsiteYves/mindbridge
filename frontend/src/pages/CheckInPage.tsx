@@ -97,7 +97,7 @@ export default function CheckInPage() {
           {error && <p className="error">{error}</p>}
           {saved && <p className="muted">Saved. Your study plan will use this check-in.</p>}
           <div className="form-row">
-            <button className="button" type="submit" disabled={busy || !mood || stress === null}>
+            <button aria-busy={busy} className="button" type="submit" disabled={busy || !mood || stress === null}>
               {busy ? "Saving…" : today ? "Update today's check-in" : "Save check-in"}
             </button>
           </div>

@@ -31,6 +31,7 @@ def hash_password(password):
     return _hasher.hash(password)
 
 
+# Legacy werkzeug hashes are still accepted so existing users can log in.
 def verify_password(stored, password):
     if stored.startswith("$argon2"):
         try:
@@ -40,5 +41,6 @@ def verify_password(stored, password):
     return check_password_hash(stored, password)
 
 
+# Any non-argon2 hash, or an argon2 hash with outdated parameters, should be rehashed.
 def password_needs_rehash(stored):
     return not stored.startswith("$argon2") or _hasher.check_needs_rehash(stored)

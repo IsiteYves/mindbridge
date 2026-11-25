@@ -57,6 +57,7 @@ def get_today():
         goal = DailyGoal(user_id=g.current_user.id, goal_date=_today(), target_count=DEFAULT_TARGET, items=items)
         db.session.add(goal)
         db.session.commit()
+    # A goal saved with no items gets its defaults filled in on the next read.
     elif not goal.items:
         goal.items = goal_rules.default_items(_candidate_tasks(g.current_user.id, DEFAULT_TARGET), target_count=DEFAULT_TARGET)
         db.session.commit()

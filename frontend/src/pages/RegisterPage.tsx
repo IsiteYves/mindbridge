@@ -16,6 +16,7 @@ export default function RegisterPage() {
 
   const unmet = unmetPasswordRules(password);
   const mismatch = confirm.length > 0 && confirm !== password;
+  // Submit stays disabled until the password rules pass and both password fields match.
   const canSubmit = unmet.length === 0 && confirm === password && !busy;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -34,6 +35,7 @@ export default function RegisterPage() {
       navigate(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(errorMessage(err));
+      // The address is already registered but unverified, so offer to resend the code.
       if (err instanceof ApiError && err.details.unverified === true) setUnverifiedEmail(email);
       setBusy(false);
     }
@@ -96,7 +98,7 @@ export default function RegisterPage() {
           <p className="error">
             {error}
             {unverifiedEmail && (
-              <button
+              <button aria-busy={busy}
                 type="button"
                 className="link-button"
                 disabled={busy}

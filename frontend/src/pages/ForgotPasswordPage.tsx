@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
           <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
         </label>
         {error && <p className="error">{error}</p>}
-        <button className="button" type="submit" disabled={busy}>
+        <button aria-busy={busy} className="button" type="submit" disabled={busy}>
           {busy ? "Sending…" : "Send reset code"}
         </button>
       </form>

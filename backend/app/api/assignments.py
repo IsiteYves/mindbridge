@@ -35,6 +35,7 @@ def _list_int(name, default, minimum, maximum):
     return value if minimum <= value <= maximum else None
 
 
+# Returns (value, is_valid); a missing param is valid and yields None.
 def _list_date(name):
     raw = request.args.get(name)
     if not raw:
@@ -104,6 +105,7 @@ def list_assignments():
 
     total = query.count()
     order = Assignment.deadline.desc() if sort == "deadline_desc" else Assignment.deadline.asc()
+    # Assignments without a deadline sort last in either direction.
     items = query.order_by(Assignment.deadline.is_(None), order, Assignment.id).offset(offset).limit(limit).all()
     return jsonify(items=[assignment_json(a) for a in items], total=total, limit=limit, offset=offset)
 

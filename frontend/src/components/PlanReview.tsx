@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { type AgentReview, type Milestone, apiRequest, errorMessage } from "@/lib/api";
-import { notifyDataChanged } from "@/lib/dataEvents";
+import { notifyDataChanged, onDataChanged } from "@/lib/dataEvents";
 import { toast } from "@/lib/toast";
 import { formatDate } from "@/lib/dates";
 
@@ -19,7 +19,7 @@ export default function PlanReview({
   const [applyingId, setApplyingId] = useState<number | null>(null);
   const [applyingAll, setApplyingAll] = useState(false);
 
-  async function runReview() {
+  const runReview = useCallback(async () => {
     setBusy(true);
     try {
       const result = await apiRequest<AgentReview>(`/assignments/${assignmentId}/milestones/review`, {
@@ -31,7 +31,17 @@ export default function PlanReview({
     } finally {
       setBusy(false);
     }
-  }
+  }, [assignmentId]);
+
+  const hasReview = review !== null;
+
+  // After the first review, re-run it whenever data changes so the suggestions stay current.
+  useEffect(() => {
+    if (!hasReview) return;
+    return onDataChanged(() => {
+      void runReview();
+    });
+  }, [hasReview, runReview]);
 
   async function applySuggestedDate(milestoneId: number, newDate: string) {
     setApplyingId(milestoneId);
@@ -80,7 +90,7 @@ export default function PlanReview({
 
   return (
     <div className="plan-review">
-      <button type="button" className="button secondary" onClick={runReview} disabled={busy}>
+      <button aria-busy={busy} type="button" className="button secondary" onClick={runReview} disabled={busy}>
         {busy ? "Reviewing…" : review ? "Review again" : "Review my plan"}
       </button>
 
@@ -105,7 +115,7 @@ export default function PlanReview({
             <div className="replan-suggestion">
               <div className="card-title">
                 <p className="mono-label">Suggested new dates</p>
-                <button
+                <button aria-busy={applyingAll}
                   type="button"
                   className="button compact"
                   disabled={applyingAll || allApplied}
@@ -124,7 +134,7 @@ export default function PlanReview({
                     <li key={milestoneId}>
                       <span>{titleFor(milestoneId)}</span>
                       <span className="muted small">→ {formatDate(newDate)}</span>
-                      <button
+                      <button aria-busy={applyingId === milestoneId}
                         type="button"
                         className="button secondary"
                         disabled={applyingId === milestoneId || alreadyApplied}
