@@ -1,10 +1,20 @@
 from urllib.parse import urlparse
 
 import requests
+from requests.adapters import HTTPAdapter
 
 REQUEST_TIMEOUT = 10
 PAGE_SIZE = 100
 MAX_TITLE_LENGTH = 255
+MAX_CONCURRENT_REQUESTS = 6
+
+
+def _new_session():
+    session = requests.Session()
+    adapter = HTTPAdapter(pool_maxsize=MAX_CONCURRENT_REQUESTS)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
 
 
 class CanvasError(Exception):
@@ -16,7 +26,7 @@ class CanvasError(Exception):
 class CanvasClient:
     def __init__(self, base_url, token, session=None):
         self.base_url = base_url.rstrip("/")
-        self.session = session or requests.Session()
+        self.session = session or _new_session()
         self.session.headers["Authorization"] = f"Bearer {token}"
 
     def list_courses(self):
@@ -28,7 +38,7 @@ class CanvasClient:
         ]
 
     def list_assignments(self, course_id):
-        items = self._get_all(f"/api/v1/courses/{course_id}/assignments", {"include[]": "rubric"})
+        items = self._get_all(f"/api/v1/courses/{course_id}/assignments", {"include[]": ["rubric", "submission"]})
         return [_normalize(item, course_id) for item in items]
 
     def _get_all(self, path, params):
@@ -45,6 +55,7 @@ class CanvasClient:
                 raise CanvasError("Canvas returned an unexpected response", 502)
             results.extend(page)
             url = self._next_url(response)
+            # Later pages come from the next link, which already carries the query params.
             params = None
         return results
 
@@ -63,9 +74,20 @@ class CanvasClient:
         url = response.links.get("next", {}).get("url")
         if url:
             base, target = urlparse(self.base_url), urlparse(url)
+            # Only follow pagination on the same host, so the access token is never sent elsewhere.
             if (target.scheme, target.netloc) != (base.scheme, base.netloc):
                 raise CanvasError("Canvas pagination pointed to an unexpected host", 502)
         return url
+
+
+SUBMITTED_STATES = {"submitted", "graded", "pending_review"}
+
+
+# Canvas can mark a submission by workflow state or by a submitted timestamp; either counts.
+def _is_submitted(submission):
+    if not isinstance(submission, dict):
+        return False
+    return submission.get("workflow_state") in SUBMITTED_STATES or submission.get("submitted_at") is not None
 
 
 def _normalize(item, course_id):
@@ -74,6 +96,7 @@ def _normalize(item, course_id):
         "course_id": str(course_id),
         "title": (item.get("name") or "Untitled assignment")[:MAX_TITLE_LENGTH],
         "deadline": item.get("due_at"),
+        "submitted": _is_submitted(item.get("submission")),
         "rubric": [
             {
                 "title": (criterion.get("description") or "Criterion")[:MAX_TITLE_LENGTH],

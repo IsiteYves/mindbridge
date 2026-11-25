@@ -18,12 +18,17 @@ def is_complete(items: list[Item]) -> bool:
     return total > 0 and done == total
 
 
-def mark_done(items: list[Item], index: int) -> list[Item]:
+# Copies the list so the caller's original items are never mutated.
+def set_done(items: list[Item], index: int, done: bool) -> list[Item]:
     if not 0 <= index < len(items):
         raise IndexError("goal item index out of range")
     updated = [dict(item) for item in items]
-    updated[index] = {**updated[index], "done": True}
+    updated[index] = {**updated[index], "done": done}
     return updated
+
+
+def mark_done(items: list[Item], index: int) -> list[Item]:
+    return set_done(items, index, True)
 
 
 def default_items(candidates: list[Item], target_count: int = 3) -> list[Item]:

@@ -1,183 +1,199 @@
 import { FormEvent, useEffect, useState } from "react";
 
-import {
-  type CanvasConnectionStatus,
-  type CanvasCourse,
-  type CanvasSyncResult,
-  apiRequest,
-  errorMessage,
-} from "@/lib/api";
+import { type CanvasConnectionStatus, type CanvasSyncResult, apiRequest, errorMessage } from "@/lib/api";
 import { formatDate } from "@/lib/dates";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { toast } from "@/lib/toast";
+
+type Course = { id: string; name: string };
 
 export default function CanvasIntegration() {
   const [status, setStatus] = useState<CanvasConnectionStatus | null>(null);
   const [token, setToken] = useState("");
-  const [courses, setCourses] = useState<CanvasCourse[] | null>(null);
+  const [courses, setCourses] = useState<Course[] | null>(null);
+  const [usingNewToken, setUsingNewToken] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
-  const [lastResult, setLastResult] = useState<CanvasSyncResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmingDisconnect, setConfirmingDisconnect] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    apiRequest<CanvasConnectionStatus>("/canvas/status").then(
-      (loaded) => {
-        if (!cancelled) setStatus(loaded);
-      },
-      (err: unknown) => {
-        if (!cancelled) setError(errorMessage(err));
-      },
+    apiRequest<CanvasConnectionStatus>("/canvas/status").then(setStatus, (err: unknown) =>
+      toast.error(errorMessage(err)),
     );
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  async function loadCourses(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      const list = await apiRequest<CanvasCourse[]>("/canvas/courses", { method: "POST", body: { token } });
-      setCourses(list);
-      setSelected([]);
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function connect() {
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await apiRequest<CanvasSyncResult>("/canvas/connect", {
-        method: "POST",
-        body: { token, course_ids: selected },
-      });
-      setLastResult(result);
-      setStatus(result.connection);
-      setCourses(null);
-      setToken("");
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function syncNow() {
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await apiRequest<CanvasSyncResult>("/canvas/sync", { method: "POST" });
-      setLastResult(result);
-      setStatus(result.connection);
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function disconnect() {
-    setBusy(true);
-    setError(null);
-    try {
-      const updated = await apiRequest<CanvasConnectionStatus>("/canvas/connection", { method: "DELETE" });
-      setStatus(updated);
-      setLastResult(null);
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  }
+  const connected = status?.status === "connected";
 
   function toggle(id: string) {
     setSelected((current) => (current.includes(id) ? current.filter((c) => c !== id) : [...current, id]));
   }
 
-  if (status === null) {
-    return <p className="muted">Loading…</p>;
+  // Shared wrapper: sets one busy flag and turns any thrown error into a toast.
+  async function run(action: () => Promise<void>) {
+    setBusy(true);
+    try {
+      await action();
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
   }
 
-  return (
-    <div className="canvas-integration">
-      {error && <p className="error">{error}</p>}
+  function changeCourses() {
+    return run(async () => {
+      const list = await apiRequest<(Course & { selected: boolean })[]>("/canvas/courses/available");
+      setCourses(list.map(({ id, name }) => ({ id, name })));
+      setSelected(list.filter((course) => course.selected).map((course) => course.id));
+      setUsingNewToken(false);
+    });
+  }
 
-      {status.status === "connected" ? (
+  function loadWithToken(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    return run(async () => {
+      const list = await apiRequest<Course[]>("/canvas/courses", { method: "POST", body: { token } });
+      setCourses(list);
+      setSelected([]);
+      setUsingNewToken(true);
+    });
+  }
+
+  function saveSelection() {
+    return run(async () => {
+      const result = await apiRequest<CanvasSyncResult>("/canvas/courses/selection", {
+        method: "PUT",
+        body: { course_ids: selected },
+      });
+      setStatus(result.connection);
+      setCourses(null);
+      toast.success("Canvas courses saved and synced.");
+    });
+  }
+
+  // A new token is saved and synced together with the chosen courses in one request.
+  function connectWithToken() {
+    return run(async () => {
+      const result = await apiRequest<CanvasSyncResult>("/canvas/connect", {
+        method: "POST",
+        body: { token, course_ids: selected },
+      });
+      setStatus(result.connection);
+      setCourses(null);
+      setToken("");
+      toast.success("Canvas connected.");
+    });
+  }
+
+  function disconnect() {
+    return run(async () => {
+      const next = await apiRequest<CanvasConnectionStatus>("/canvas/connection", { method: "DELETE" });
+      setStatus(next);
+      setCourses(null);
+      toast.success("Canvas disconnected. Imported assignments are kept.");
+    });
+  }
+
+  const tokenForm = (
+    <form className="form" onSubmit={loadWithToken}>
+      <label className="field">
+        Canvas access token
+        <input
+          type="password"
+          value={token}
+          onChange={(event) => setToken(event.target.value)}
+          autoComplete="off"
+          required
+        />
+      </label>
+      <div className="actions-row">
+        <button aria-busy={busy} className="button" type="submit" disabled={busy || !token}>
+          Load my courses
+        </button>
+      </div>
+    </form>
+  );
+
+  return (
+    <section className="card canvas-panel">
+      <div className="card-title">
+        <h2>Canvas</h2>
+        <span className="pill">{connected ? "Connected" : "Not connected"}</span>
+      </div>
+
+      {status === null && <p className="muted">Loading…</p>}
+
+      {status && connected && !courses && (
         <>
           <p className="muted">
-            Connected. Last synced {status.last_synced_at ? formatDate(status.last_synced_at) : "never"}.
+            Last synced {status.last_synced_at ? formatDate(status.last_synced_at) : "never"}. Sync from Import from
+            Canvas.
           </p>
           <div className="actions-row">
-            <button type="button" className="button" disabled={busy} onClick={syncNow}>
-              {busy ? "Syncing…" : "Sync now"}
+            <button aria-busy={busy} type="button" className="button secondary" disabled={busy} onClick={changeCourses}>
+              Change courses
             </button>
-            <button type="button" className="button secondary" disabled={busy} onClick={disconnect}>
+            <button aria-busy={busy} type="button" className="button secondary" disabled={busy} onClick={() => setConfirmingDisconnect(true)}>
               Disconnect
             </button>
+            <ConfirmDialog
+              open={confirmingDisconnect}
+              title="Disconnect Canvas?"
+              message="Your stored token and course selection will be removed. Imported assignments are kept."
+              confirmLabel="Disconnect"
+              onConfirm={() => {
+                setConfirmingDisconnect(false);
+                void disconnect();
+              }}
+              onCancel={() => setConfirmingDisconnect(false)}
+            />
           </div>
-          {lastResult && (
-            <p className="muted small">
-              Last sync: {lastResult.created} created, {lastResult.updated} updated, {lastResult.skipped.length} skipped.
-            </p>
-          )}
-        </>
-      ) : (
-        <>
-          <p className="muted">
-            {status.status === "disconnected"
-              ? "Disconnected. Connect again to resume automatic syncing."
-              : "Not connected yet. Connect once, and MindBridge keeps it in sync without asking for your token again."}
-          </p>
-
-          {courses === null ? (
-            <form className="form-row" onSubmit={loadCourses}>
-              <label className="field">
-                Canvas access token
-                <input
-                  type="password"
-                  value={token}
-                  onChange={(event) => setToken(event.target.value)}
-                  placeholder="Paste your Canvas personal access token"
-                  required
-                />
-              </label>
-              <button className="button" type="submit" disabled={busy || !token}>
-                {busy ? "Loading…" : "Find my courses"}
-              </button>
-            </form>
-          ) : (
-            <>
-              <ul className="list">
-                {courses.map((course) => (
-                  <li key={course.id}>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(course.id)}
-                        onChange={() => toggle(course.id)}
-                      />{" "}
-                      {course.name}
-                    </label>
-                  </li>
-                ))}
-              </ul>
-              <div className="actions-row">
-                <button type="button" className="button" disabled={busy || selected.length === 0} onClick={connect}>
-                  {busy ? "Connecting…" : "Connect selected courses"}
-                </button>
-                <button type="button" className="button secondary" disabled={busy} onClick={() => setCourses(null)}>
-                  Back
-                </button>
-              </div>
-            </>
-          )}
+          <details className="token-change">
+            <summary className="muted small">Use a different token</summary>
+            {tokenForm}
+          </details>
         </>
       )}
-    </div>
+
+      {status && !connected && !courses && (
+        <>
+          <p className="muted">
+            Paste a Canvas personal access token (Account → Settings → New Access Token). It is stored encrypted, so
+            you can sync later without pasting it again.
+          </p>
+          {tokenForm}
+        </>
+      )}
+
+      {courses && (
+        <>
+          <p className="muted">Choose the Canvas courses to sync.</p>
+          {courses.length === 0 && <p className="muted">No active courses were found for this account.</p>}
+          <ul className="list">
+            {courses.map((course) => (
+              <li key={course.id}>
+                <label>
+                  <input type="checkbox" checked={selected.includes(course.id)} onChange={() => toggle(course.id)} />{" "}
+                  {course.name}
+                </label>
+              </li>
+            ))}
+          </ul>
+          <div className="actions-row">
+            <button aria-busy={busy}
+              type="button"
+              className="button"
+              disabled={busy || selected.length === 0}
+              onClick={usingNewToken ? connectWithToken : saveSelection}
+            >
+              {usingNewToken ? "Connect Canvas" : "Save courses"}
+            </button>
+            <button type="button" className="button secondary" onClick={() => setCourses(null)}>
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
+    </section>
   );
 }

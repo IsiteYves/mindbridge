@@ -1,0 +1,315 @@
+\documentclass[25pt, a0paper, landscape]{tikzposter}
+
+% ---------- Packages ----------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs,array}
+\usepackage{enumitem}
+\usepackage{qrcode}
+\usepackage{tikz}
+\usetikzlibrary{calc,positioning}
+
+% ---------- ALU-inspired palette ----------
+\definecolor{ALUBlue}{HTML}{002E6D}
+\definecolor{ALUBlueDark}{HTML}{001F49}
+\definecolor{ALUBlueLight}{HTML}{EAF1FB}
+\definecolor{ALUBlueLine}{HTML}{BFD0EA}
+\definecolor{ALUText}{HTML}{1E2A38}
+\definecolor{ALUMuted}{HTML}{5C6B7A}
+\definecolor{ALUWhite}{HTML}{FFFFFF}
+\definecolor{ALUAccent}{HTML}{D9E6F7}
+
+% ---------- Theme ----------
+\usetheme{Simple}
+\usecolorstyle{Default}
+\usebackgroundstyle{Default}
+
+\colorlet{backgroundcolor}{ALUWhite}
+\colorlet{framecolor}{ALUBlueLine}
+\colorlet{titlefgcolor}{white}
+\colorlet{titlebgcolor}{ALUBlue}
+\colorlet{blocktitlebgcolor}{ALUBlue}
+\colorlet{blocktitlefgcolor}{white}
+\colorlet{blockbodybgcolor}{white}
+\colorlet{blockbodyfgcolor}{ALUText}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.12em}
+\linespread{0.98}
+\setlist[itemize]{leftmargin=1.05em,itemsep=0.02em,topsep=0.02em,parsep=0pt,partopsep=0pt}
+
+% ---------- Block appearance ----------
+\defineblockstyle{ALUBlock}{
+    titlewidthscale=1, bodywidthscale=1, roundedcorners=16,
+    titleleft, titleoffsetx=0mm, titleoffsety=0mm,
+    bodyoffsetx=0mm, bodyoffsety=3.5mm,
+    bodyverticalshift=3.5mm, linewidth=1.0mm
+}{
+    \draw[rounded corners=16pt, line width=1.1mm, color=ALUBlueLine, fill=white]
+      (blockbody.south west) rectangle (blockbody.north east);
+    \ifBlockHasTitle
+      \draw[rounded corners=16pt, line width=0mm, fill=ALUBlue]
+      (blocktitle.south west) rectangle (blocktitle.north east);
+    \fi
+}
+\useblockstyle{ALUBlock}
+
+% ---------- Helpers ----------
+\newcommand{\takeawaybox}[1]{%
+  \begin{center}
+  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
+    \parbox{0.94\linewidth}{\centering\bfseries\Large #1}
+  }
+  \end{center}
+}
+
+\newcommand{\posterimageplaceholder}[2][0.95\linewidth]{%
+  \begin{center}
+  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
+    \parbox[c][6.6cm][c]{#1}{\centering\bfseries\Large #2\\[0.35em]\normalsize Replace with a polished figure, screenshot, architecture diagram, chart, or hardware photo}
+  }
+  \end{center}
+}
+
+\newcommand{\metricbox}[2]{%
+  \fcolorbox{ALUBlueLine}{ALUBlueLight}{
+    \parbox[c][2.9cm][c]{0.29\linewidth}{\centering\bfseries\LARGE #1\\[0.18em]\normalsize #2}
+  }
+}
+
+\newcommand{\projectmeta}[4]{%
+  \begin{tabular}{>{\bfseries}p{0.24\linewidth}p{0.69\linewidth}}
+    Team & #1\\[0.18em]
+    Programme & #2\\[0.18em]
+    Supervisors & #3\\[0.18em]
+    Demo / QR & #4
+  \end{tabular}
+}
+
+% ---------- Title ----------
+\title{MindBridge: A Technological Academic Workload Deconstruction and Burnout Mitigation Platform}
+\author{Tendai Lynn Mtakiwa \textbar\ Maunice Akaliza \textbar\ Yves Isite \textbar\ Orla Ishimwe \textbar\ Esther Konde \textbar\ Joel Hakizimana \textbar\ Muuse Muuse}
+\institute{African Leadership University \textbar\ BSc. in Software Engineering Foundations Project \textbar\ Group Name: MindBridge}
+\titlegraphic{\includegraphics[height=3.5cm]{alu-logo-white-full.png}}
+
+\begin{document}
+\maketitle
+
+\vspace{0.1cm}
+
+\begin{columns}
+
+% ================= LEFT =================
+\column{0.30}
+
+% --- SECTION 1: MAUNICE AKALIZA ---
+\block{1. Problem, Context, and Users}{
+
+\begin{itemize}
+  \item ALU students struggle with large assignments, overlapping deadlines, 
+  and academic stress. Existing platforms such as Canvas provide deadlines 
+  but do not break assignments into manageable tasks. 
+  An initial survey found that 83% of respondents experienced moderate to
+   very high academic stress. MindBridge addresses this challenge by helping 
+   students organize assignments and plan their workload. 
+\end{itemize}
+
+\textbf{Recommended pattern:} In \underline{context}, \underline{users} struggle with \underline{problem}. Existing approaches fall short because \underline{gap}. We designed \underline{solution} to improve \underline{outcome}.
+}
+
+% --- SECTION 2: MAUNICE AKALIZA ---
+\block{2. Objectives and Scope}{
+Keep this section tight and measurable.
+
+\begin{itemize}
+  \item \textbf{Objective :} To develop MindBridge, a web-based platform that simplifies
+   academic workload management and helps students avoid last-minute assignment pressure.
+  \item \textbf{Scope:} The platform enables students to import Canvas assignments, manage deadlines, and automatically convert rubric criteria into smaller, dated milestones. It focuses on improving academic organization and planning among ALU students.
+  
+\end{itemize}
+}
+
+% --- SECTION 3: TENDAI MTAKIWA (COMPLETED) ---
+\block{3. Project Metadata}{
+\projectmeta
+  {\textbf{Group MindBridge (Team 2):} Yves Isite (Tech Lead), Tendai Lynn Mtakiwa (Scrum Master \& QA), Muuse Muuse (Product Owner \& QA), Hakizimana Baraka Joel (Full Stack \& QA), Orla Ishimwe (Full Stack), Esther Konde (System Architect), Akaliza Alizee Maunice (PM \& QA)}
+  {BSc. in Software Engineering Foundations Project (ALU Rwanda)}
+  {Foundations Project Facilitators \& Faculty Mentors}
+  {\texttt{github.com/IsiteYves/mindbridge}}
+
+\vspace{0.5em}
+\begin{center}
+\qrcode[height=4.0cm]{https://github.com/IsiteYves/mindbridge}
+\end{center}
+}
+
+% --- SECTION 4: JOEL & ESTHER ---
+\block{4. Constraints and Design Decisions}{
+Posters are stronger when they show real engineering trade-offs.
+
+\begin{itemize}
+  \item Connectivity, power, budget, or hardware constraints
+  \item Data quality, privacy, security, or compliance issues
+  \item Why you chose this architecture, model, stack, or device setup
+  \item Main trade-off: what you optimized for, and what you sacrificed
+\end{itemize}
+}
+
+% ================= MIDDLE =================
+\column{0.40}
+
+% --- SECTION 5: ORLA, JOEL & ESTHER ---
+\block{5. Proposed Solution and System Overview}{
+\takeawaybox{The centre column should be the visual anchor of the whole poster.}
+
+\begin{minipage}[t]{0.48\linewidth}
+\textbf{Solution summary}
+
+Describe the end-to-end flow in one short paragraph. Focus on what enters the system, what happens inside, and what the user gets out of it.
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\textbf{Architecture checklist}
+\begin{itemize}
+  \item Interface / frontend
+  \item Backend / services / logic
+  \item Data store / APIs / models
+  \item Devices, integrations, or deployment
+\end{itemize}
+\end{minipage}
+
+\posterimageplaceholder[0.97\linewidth]{Main system architecture, UI workflow, hardware setup, or polished prototype figure}
+}
+
+% --- SECTION 6: YVES ISITE ---
+\block{6. Methodology and Build Process}{
+\begin{minipage}[t]{0.48\linewidth}
+\textbf{Research / discovery}
+\begin{itemize}
+  \item User interviews, observation, or precedent review
+  \item Requirement gathering and feasibility checks
+  \item Risk, ethics, or context analysis
+\end{itemize}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\textbf{Engineering / implementation}
+\begin{itemize}
+  \item Architecture and design choices
+  \item Prototype iterations and testing
+  \item Deployment, simulation, or demo setup
+\end{itemize}
+\end{minipage}
+
+\vspace{0.4em}
+\begin{center}
+\begin{tabular}{p{0.16\linewidth}p{0.76\linewidth}}
+\toprule
+\textbf{Stage} & \textbf{What to show briefly} \\
+\midrule
+Discover & users, needs, constraints, baseline findings \\
+Design & flows, architecture, rationale, sketches \\
+Build & key components, integrations, implementation choices \\
+Test & usability, speed, accuracy, reliability, feedback \\
+Iterate & what changed after evidence or testing \\
+\bottomrule
+\end{tabular}
+\end{center}
+}
+
+% --- SECTION 7: JOEL HAKIZIMANA ---
+\block{7. Results, Evaluation, and Demo Evidence}{
+\begin{center}
+\metricbox{95\%}{Task success}
+\hfill
+\metricbox{1.8s}{Avg. response}
+\hfill
+\metricbox{12}{Pilot users}
+\end{center}
+
+\vspace{0.5em}
+\begin{minipage}[t]{0.48\linewidth}
+\begin{itemize}
+  \item Show 2--4 quantitative results only
+  \item Include one user or field insight if relevant
+  \item Compare against a baseline where possible
+\end{itemize}
+\begin{center}\fcolorbox{ALUBlueLine}{ALUBlueLight}{\parbox[c][3.7cm][c]{0.95\linewidth}{\centering\bfseries\Large Chart, benchmark, confusion matrix, or evaluation table}}\end{center}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{itemize}
+  \item What can be demonstrated live today?
+  \item Which workflow is fully working?
+  \item What remains simulated or partial?
+\end{itemize}
+\begin{center}\fcolorbox{ALUBlueLine}{ALUBlueLight}{\parbox[c][3.7cm][c]{0.95\linewidth}{\centering\bfseries\Large Demo storyboard, product screenshot, or device photo}}\end{center}
+\end{minipage}
+}
+
+% ================= RIGHT =================
+\column{0.30}
+
+% --- SECTION 8: MUUSE MUUSE ---
+\block{8. Impact, Contribution, and Learning}{
+Frame the contribution at three levels.
+
+\begin{itemize}
+  \item \textbf{Technical:} Developed MindBridge to help students manage assignments and academic deadlines.
+Designed features to support students during stressful academic periods.
+  \item \textbf{User:} Helps students organize their workload and avoid last-minute pressure.
+Encourages students to recognize stress and seek support early.
+  \item \textbf{Research:} Learned how technology can support students' mental well-being.
+Improved our skills in teamwork, software development, testing, and problem-solving.
+  \item \textbf{Mission:} Promotes student well-being and makes academic life more manageable in African universities.
+\end{itemize}
+
+\takeawaybox{Making academic pressure manageable, one assignment at a time.}
+}
+
+% --- SECTION 9: MUUSE MUUSE ---
+\block{9. Limitations and Next Steps}{
+Strong projects acknowledge what is still unfinished.
+
+\begin{itemize}
+  \item Depends on students entering their assignments and deadlines correctly.
+
+Stress levels may not always be accurately identified.
+
+Limited testing with real students.
+
+Next Steps
+
+Test MindBridge with more students.
+
+Improve personalized reminders and support.
+
+Integrate with university learning platforms.
+
+Improve the system based on student feedback.
+\end{itemize}
+}
+
+% --- SECTION 10: MUUSE MUUSE ---
+\block{10. References and Acknowledgements}{
+\textbf{References}
+
+\begin{itemize}
+  \item Author, A. (Year). Title. Journal or Conference.
+  \item Author, B. (Year). Title. Source.
+  \item Author, C. (Year). Title. Source.
+\end{itemize}
+
+\textbf{Acknowledgements}
+We would like to thank our facilitator for the guidance, feedback, and support throughout this project.
+
+We also appreciate our teammates for their collaboration and commitment, and the students who provided feedback and helped us understand the challenges students face with academic stress..
+}
+
+\end{columns}
+
+\end{document}

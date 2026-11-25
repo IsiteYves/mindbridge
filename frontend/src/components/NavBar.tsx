@@ -1,26 +1,24 @@
+import { BookOpen, CalendarDays, ClipboardList, CloudDownload, HeartPulse, LayoutDashboard, LogOut, Settings } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
 
-import { clearToken } from "@/lib/api";
+import { endSession } from "@/lib/session";
 
-// "Home" is deliberately not listed yet: for a signed-in user "/" redirects
-// straight to "/assignments" today (see App.tsx), so a separate Home entry
-// would either duplicate this one or point at a page that doesn't exist. A
-// real dashboard/overview surface is planned (see the assignment planner
-// work later this week) and gets its own nav entry once it exists.
-const LINKS = [
-  { to: "/assignments", label: "My assignments" },
-  { to: "/check-in", label: "Daily check-in" },
-  { to: "/plan", label: "Study plan" },
-  { to: "/import", label: "Import from Canvas" },
+const LINKS: { to: string; label: string; icon: LucideIcon }[] = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/assignments", label: "My assignments", icon: ClipboardList },
+  { to: "/check-in", label: "Daily check-in", icon: HeartPulse },
+  { to: "/plan", label: "Study plan", icon: CalendarDays },
+  { to: "/import", label: "Import from Canvas", icon: CloudDownload },
 ];
 
 // Rendered only for signed-in users; logged-out visitors see PublicHeader instead.
-export default function NavBar() {
+export default function NavBar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  function signOut() {
-    clearToken();
+  async function signOut() {
+    await endSession();
     navigate("/login", { replace: true });
   }
 
@@ -29,7 +27,7 @@ export default function NavBar() {
   }
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${open ? " open" : ""}`}>
       <Link to="/assignments" className="brand">
         <span className="brand-mark" aria-hidden="true">
           M
@@ -44,7 +42,9 @@ export default function NavBar() {
             to={link.to}
             className={`nav-link${isActive(link.to) ? " active" : ""}`}
             aria-current={isActive(link.to) ? "page" : undefined}
+            onClick={onClose}
           >
+            <link.icon size={18} strokeWidth={1.75} aria-hidden="true" />
             {link.label}
           </Link>
         ))}
@@ -56,13 +56,33 @@ export default function NavBar() {
       </div>
 
       <div className="sidebar-footer">
-        <Link to="/planning-guide" className="link-button">
+        <Link
+          to="/planning-guide"
+          className={`nav-link${isActive("/planning-guide") ? " active" : ""}`}
+          aria-current={isActive("/planning-guide") ? "page" : undefined}
+          onClick={onClose}
+        >
+          <BookOpen size={18} strokeWidth={1.75} aria-hidden="true" />
           Planning guide
         </Link>
-        <Link to="/settings" className="link-button">
+        <Link
+          to="/settings"
+          className={`nav-link${isActive("/settings") ? " active" : ""}`}
+          aria-current={isActive("/settings") ? "page" : undefined}
+          onClick={onClose}
+        >
+          <Settings size={18} strokeWidth={1.75} aria-hidden="true" />
           Settings
         </Link>
-        <button type="button" className="link-button" onClick={signOut}>
+        <button
+          type="button"
+          className="nav-link"
+          onClick={() => {
+            onClose();
+            void signOut();
+          }}
+        >
+          <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />
           Sign out
         </button>
       </div>

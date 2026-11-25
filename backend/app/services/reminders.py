@@ -23,10 +23,10 @@ def is_overdue(target: dt.date, today: dt.date) -> bool:
 
 def _subject_for(kind: str) -> str:
     return {
-        "deadline": "Upcoming deadline — MindBridge",
-        "milestone": "Upcoming milestone — MindBridge",
-        "overdue": "Still open and overdue — MindBridge",
-        "new_item": "New item added to your plan — MindBridge",
+        "deadline": "Upcoming Deadline — MindBridge",
+        "milestone": "Upcoming Milestone — MindBridge",
+        "overdue": "Overdue: Still Open — MindBridge",
+        "new_item": "New Item Added to Your Plan — MindBridge",
     }[kind]
 
 
@@ -39,6 +39,9 @@ def _body_for(kind: str, title: str, course: str, when: dt.date, offset_days: in
         return f'"{title}" ({course}) is due today, {when:%d %b %Y}.'
     plural = "s" if offset_days != 1 else ""
     return f'"{title}" ({course}) is due in {offset_days} day{plural}, on {when:%d %b %Y}.'
+
+
+NO_OFFSET_SENTINEL = -1  # stored in place of NULL for overdue and new-item reminders
 
 
 def _enabled_offsets(user_id: int) -> set[int]:
@@ -54,10 +57,13 @@ def _claim_and_send(*, user, assignment, milestone, kind, offset_days, today, ti
         assignment_id=assignment.id,
         milestone_id=milestone.id if milestone else None,
         kind=kind,
-        offset_days=offset_days,
+        # NULL never collides in a unique index, so overdue/new-item rows would be
+        # stored again on every run. Store a sentinel so the dedupe constraint holds.
+        offset_days=NO_OFFSET_SENTINEL if offset_days is None else offset_days,
         fired_for_date=today,
         sent_at=None,
     )
+    # Insert first so a duplicate run hits the unique constraint and skips the send.
     db.session.add(reminder)
     try:
         db.session.commit()
@@ -65,6 +71,7 @@ def _claim_and_send(*, user, assignment, milestone, kind, offset_days, today, ti
         db.session.rollback()
         return False  
 
+    # If sending fails, release the claim so a later run can retry.
     try:
         send_reminder_email(user.email, _subject_for(kind), _body_for(kind, title, course, when, offset_days))
     except MailError:
@@ -139,6 +146,7 @@ def fire_new_item_reminder(user: User, assignment: Assignment, milestone: Milest
     target = milestone.target_date if milestone else assignment.deadline
     if target is None:
         return
+    # A reminder failure must never break the caller's save, so errors are rolled back and ignored.
     try:
         _claim_and_send(
             user=user, assignment=assignment, milestone=milestone, kind="new_item", offset_days=None,

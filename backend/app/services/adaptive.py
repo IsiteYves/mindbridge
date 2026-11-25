@@ -34,5 +34,6 @@ def suggested_target(target, now, slack):
     return now + (target - now) * (1 - slack)
 
 
+# Inclusive at both ends, so a moment exactly on the window edge still counts.
 def in_window(moment, now, hours):
     return now <= moment <= now + dt.timedelta(hours=hours)

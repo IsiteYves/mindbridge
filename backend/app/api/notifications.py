@@ -10,7 +10,7 @@ from flask import Blueprint, abort, g, jsonify
 from app.api.auth import token_required
 from app.api.common import json_body
 from app.extensions import db
-from app.models import Reminder, ReminderPreference
+from app.models import Assignment, Milestone, Reminder, ReminderPreference
 
 notifications_bp = Blueprint("notifications", __name__, url_prefix="/notifications")
 
@@ -24,6 +24,8 @@ def preference_json(preference):
 
 
 def reminder_json(reminder):
+    assignment = db.session.get(Assignment, reminder.assignment_id)
+    milestone = db.session.get(Milestone, reminder.milestone_id) if reminder.milestone_id else None
     return {
         "id": reminder.id,
         "assignment_id": reminder.assignment_id,
@@ -32,6 +34,8 @@ def reminder_json(reminder):
         "offset_days": reminder.offset_days,
         "fired_for_date": reminder.fired_for_date.isoformat(),
         "sent_at": reminder.sent_at.isoformat() if reminder.sent_at else None,
+        "title": (milestone.title if milestone else assignment.title) if assignment else None,
+        "course": assignment.course if assignment else None,
     }
 
 
@@ -80,6 +84,33 @@ def update_preference():
     return jsonify(preference_json(preference))
 
 
+@notifications_bp.put("/preferences")
+@token_required
+def replace_preferences():
+    items = json_body().get("preferences")
+    if not isinstance(items, list) or not items:
+        return jsonify(error="preferences must be a non-empty list"), 400
+    wanted = {}
+    for item in items:
+        if not isinstance(item, dict) or item.get("offset_days") not in ALLOWED_OFFSETS:
+            return jsonify(error=f"offset_days must be one of {', '.join(map(str, ALLOWED_OFFSETS))}"), 400
+        if not isinstance(item.get("enabled"), bool):
+            return jsonify(error="enabled must be true or false"), 400
+        wanted[item["offset_days"]] = item["enabled"]
+
+    existing = {
+        preference.offset_days: preference
+        for preference in db.session.query(ReminderPreference).filter_by(user_id=g.current_user.id)
+    }
+    for offset_days, enabled in wanted.items():
+        if offset_days in existing:
+            existing[offset_days].enabled = enabled
+        else:
+            db.session.add(ReminderPreference(user_id=g.current_user.id, offset_days=offset_days, enabled=enabled))
+    db.session.commit()
+    return list_preferences()
+
+
 @notifications_bp.get("")
 @token_required
 def list_notifications():
@@ -103,6 +134,28 @@ def owned_reminder_or_404(reminder_id):
     if reminder is None or reminder.user_id != g.current_user.id:
         abort(404)
     return reminder
+
+
+NOTIFICATION_KINDS = ("deadline", "milestone", "overdue", "new_item")
+
+
+@notifications_bp.post("/dismiss-all")
+@token_required
+def dismiss_all():
+    kinds = json_body().get("kinds")
+    if kinds is not None and (not isinstance(kinds, list) or not set(kinds) <= set(NOTIFICATION_KINDS)):
+        return jsonify(error=f"kinds must be a list of {', '.join(NOTIFICATION_KINDS)}"), 400
+    query = db.session.query(Reminder).filter(
+        Reminder.user_id == g.current_user.id,
+        Reminder.sent_at.isnot(None),
+        Reminder.dismissed_at.is_(None),
+    )
+    # No kinds given (or an empty list) dismisses every kind.
+    if kinds:
+        query = query.filter(Reminder.kind.in_(kinds))
+    dismissed = query.update({"dismissed_at": dt.datetime.now(dt.timezone.utc)}, synchronize_session=False)
+    db.session.commit()
+    return jsonify(dismissed=dismissed)
 
 
 @notifications_bp.post("/<int:reminder_id>/dismiss")

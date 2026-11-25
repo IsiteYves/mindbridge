@@ -100,7 +100,7 @@ def connect():
     if token is None or not _valid_course_ids(course_ids):
         return jsonify(error=f"token and 1 to {MAX_COURSES_PER_IMPORT} course_ids are required"), 400
 
-    result = sync_courses(g.current_user, _client(token), course_ids)
+    result = sync_courses(g.current_user, _client(token), course_ids, notify_in_background=_notify_in_background())
 
     integration = _integration_for(g.current_user.id)
     if integration is None:
@@ -108,6 +108,7 @@ def connect():
         db.session.add(integration)
     integration.status = "connected"
     integration.access_token_encrypted = encrypt_secret(token)
+    # Drop duplicate course ids but keep the order the student picked them in.
     integration.selected_course_ids = list(dict.fromkeys(str(c) for c in course_ids))
     integration.last_synced_at = dt.datetime.now(dt.timezone.utc)
     db.session.commit()
@@ -116,29 +117,67 @@ def connect():
     return jsonify(**response, connection=_integration_json(integration))
 
 
-@canvas_bp.post("/sync")
-@token_required
-def sync():
-    integration = _integration_for(g.current_user.id)
-    if integration is None or integration.status != "connected" or not integration.access_token_encrypted:
-        return jsonify(error="Canvas is not connected yet. Connect it first."), 409
+def _notify_in_background():
+    return not current_app.config.get("TESTING", False)
 
+
+def _stored_token(user_id):
+    integration = _integration_for(user_id)
+    if integration is None or integration.status != "connected" or not integration.access_token_encrypted:
+        raise CanvasError("Canvas is not connected yet. Connect it first.", 409)
+    # An unreadable token means the encryption key changed or the stored value is damaged.
     token = decrypt_secret(integration.access_token_encrypted)
     if token is None:
         integration.status = "disconnected"
         db.session.commit()
-        return jsonify(error="Your Canvas connection could not be read back. Please reconnect."), 409
+        raise CanvasError("Your Canvas connection could not be read back. Please reconnect.", 409)
+    return integration, token
 
-    course_ids = integration.selected_course_ids or []
-    if not course_ids:
-        return jsonify(error="No courses are selected for this connection. Reconnect to choose some."), 409
 
-    result = sync_courses(g.current_user, _client(token), course_ids)
-    integration.last_synced_at = dt.datetime.now(dt.timezone.utc)
-    db.session.commit()
-
+def _sync_response(result, integration):
     response = {**result, "assignments": [assignment_json(a) for a in result["assignments"]]}
     return jsonify(**response, connection=_integration_json(integration))
+
+
+@canvas_bp.get("/courses/available")
+@token_required
+def available_courses():
+    integration, token = _stored_token(g.current_user.id)
+    selected = set(integration.selected_course_ids or [])
+    return jsonify(
+        [
+            {"id": course["id"], "name": course["name"], "selected": course["id"] in selected}
+            for course in _client(token).list_courses()
+        ]
+    )
+
+
+@canvas_bp.put("/courses/selection")
+@token_required
+def update_selection():
+    course_ids = json_body().get("course_ids")
+    if not _valid_course_ids(course_ids):
+        return jsonify(error=f"1 to {MAX_COURSES_PER_IMPORT} course_ids are required"), 400
+    integration, token = _stored_token(g.current_user.id)
+    wanted = list(dict.fromkeys(str(c) for c in course_ids))
+    result = sync_courses(g.current_user, _client(token), wanted, notify_in_background=_notify_in_background())
+    integration.selected_course_ids = wanted
+    integration.last_synced_at = dt.datetime.now(dt.timezone.utc)
+    db.session.commit()
+    return _sync_response(result, integration)
+
+
+@canvas_bp.post("/sync")
+@token_required
+def sync():
+    integration, token = _stored_token(g.current_user.id)
+    course_ids = integration.selected_course_ids or []
+    if not course_ids:
+        raise CanvasError("No courses are selected for this connection. Choose some in Integrations.", 409)
+    result = sync_courses(g.current_user, _client(token), course_ids, notify_in_background=_notify_in_background())
+    integration.last_synced_at = dt.datetime.now(dt.timezone.utc)
+    db.session.commit()
+    return _sync_response(result, integration)
 
 
 @canvas_bp.delete("/connection")

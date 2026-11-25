@@ -155,3 +155,57 @@ def test_dismissing_an_unsent_reminder_is_refused(client, make_user_headers):
     db.session.commit()
 
     assert client.post(f"{NOTIFICATIONS}/{reminder.id}/dismiss", headers=headers).status_code == 409
+
+
+def test_put_preferences_saves_every_offset_at_once(client, make_user_headers):
+    headers = make_user_headers("student1")
+    body = {"preferences": [{"offset_days": offset, "enabled": offset != 2} for offset in (5, 2, 1, 0)]}
+    response = client.put("/api/v1/notifications/preferences", json=body, headers=headers)
+    assert response.status_code == 200
+    saved = {item["offset_days"]: item["enabled"] for item in response.get_json()}
+    assert saved == {5: True, 2: False, 1: True, 0: True}
+
+
+def test_put_preferences_rejects_an_unknown_offset(client, make_user_headers):
+    headers = make_user_headers("student1")
+    body = {"preferences": [{"offset_days": 9, "enabled": True}]}
+    assert client.put("/api/v1/notifications/preferences", json=body, headers=headers).status_code == 400
+
+
+def test_dismiss_all_clears_only_the_chosen_kinds(app, client, make_user_headers):
+    from app.extensions import db
+    from app.models import Reminder
+
+    headers = make_user_headers("student1")
+    now = dt.datetime.now(dt.timezone.utc)
+    assignment_id = client.post(
+        "/api/v1/assignments",
+        json={"course": "CS", "title": "Report", "deadline": "2026-12-20T23:59:00+00:00"},
+        headers=headers,
+    ).get_json()["id"]
+    with app.app_context():
+        user_id = client.get("/api/v1/auth/me", headers=headers).get_json()["id"]
+        for kind in ("deadline", "new_item", "new_item"):
+            db.session.add(
+                Reminder(
+                    user_id=user_id,
+                    assignment_id=assignment_id,
+                    kind=kind,
+                    offset_days=None,
+                    fired_for_date=now.date(),
+                    sent_at=now,
+                )
+            )
+        db.session.commit()
+
+    dismissed = client.post("/api/v1/notifications/dismiss-all", json={"kinds": ["new_item"]}, headers=headers)
+    assert dismissed.get_json()["dismissed"] == 2
+    remaining = client.get("/api/v1/notifications", headers=headers).get_json()
+    assert [item["kind"] for item in remaining] == ["deadline"]
+    assert remaining[0]["title"] == "Report"
+    assert remaining[0]["course"] == "CS"
+
+
+def test_dismiss_all_rejects_unknown_kinds(client, make_user_headers):
+    headers = make_user_headers("student1")
+    assert client.post("/api/v1/notifications/dismiss-all", json={"kinds": ["bogus"]}, headers=headers).status_code == 400

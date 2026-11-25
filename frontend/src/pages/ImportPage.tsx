@@ -1,125 +1,104 @@
-import { FormEvent, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
-import { apiRequest, CanvasCourse, errorMessage, ImportResult } from "@/lib/api";
+import { type CanvasConnectionStatus, type CanvasSyncResult, apiRequest, errorMessage } from "@/lib/api";
 import { formatDate } from "@/lib/dates";
+import { toast } from "@/lib/toast";
 
 export default function ImportPage() {
-  const [token, setCanvasToken] = useState("");
-  const [courses, setCourses] = useState<CanvasCourse[] | null>(null);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [result, setResult] = useState<ImportResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<CanvasConnectionStatus | null>(null);
+  const [result, setResult] = useState<CanvasSyncResult | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function loadCourses(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  useEffect(() => {
+    apiRequest<CanvasConnectionStatus>("/canvas/status").then(setStatus, (err: unknown) =>
+      toast.error(errorMessage(err)),
+    );
+  }, []);
+
+  async function syncNow() {
     setBusy(true);
-    setError(null);
-    setResult(null);
     try {
-      const list = await apiRequest<CanvasCourse[]>("/canvas/courses", { method: "POST", body: { token } });
-      setCourses(list);
-      setSelected([]);
+      const synced = await apiRequest<CanvasSyncResult>("/canvas/sync", { method: "POST" });
+      setResult(synced);
+      // The sync response includes the updated connection, so no second status fetch is needed.
+      setStatus(synced.connection);
+      toast.success("Canvas synced.");
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setBusy(false);
     }
   }
 
-  async function importSelected() {
-    setBusy(true);
-    setError(null);
-    try {
-      const imported = await apiRequest<ImportResult>("/canvas/import", {
-        method: "POST",
-        body: { token, course_ids: selected },
-      });
-      setResult(imported);
-      setCourses(null);
-      setCanvasToken("");
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function toggle(id: string) {
-    setSelected((current) => (current.includes(id) ? current.filter((c) => c !== id) : [...current, id]));
-  }
+  const connected = status?.status === "connected";
 
   return (
     <>
       <section className="card">
         <h1>Import from Canvas</h1>
-        <p className="muted">
-          Paste a Canvas personal access token (Account → Settings → New Access Token). It is sent once to load your
-          courses and is never saved.
-        </p>
-        <form className="form" onSubmit={loadCourses}>
-          <label className="field">
-            Canvas access token
-            <input
-              type="password"
-              value={token}
-              onChange={(event) => setCanvasToken(event.target.value)}
-              autoComplete="off"
-              required
-            />
-          </label>
-          <button className="button" type="submit" disabled={busy || !token}>
-            Load my courses
-          </button>
-        </form>
-        {error && <p className="error">{error}</p>}
+        {status === null && <p className="muted">Loading…</p>}
+        {status && !connected && (
+          <>
+            <p className="muted">Canvas is not connected. Connect it in Integrations first.</p>
+            <Link to="/settings?section=integration" className="button">
+              Connect Canvas
+            </Link>
+          </>
+        )}
+        {status && connected && (
+          <>
+            <p className="muted">
+              Re-imports your selected courses with the stored Canvas connection. Last synced{" "}
+              {status.last_synced_at ? formatDate(status.last_synced_at) : "never"}.
+            </p>
+            <div className="actions-row">
+              <button aria-busy={busy} type="button" className="button" disabled={busy} onClick={syncNow}>
+                {busy ? "Syncing…" : "Sync now"}
+              </button>
+              <Link to="/settings?section=integration" className="button secondary">
+                Change courses or token
+              </Link>
+            </div>
+          </>
+        )}
       </section>
-
-      {courses && (
-        <section className="card">
-          <h2>Choose courses</h2>
-          {courses.length === 0 && <p className="muted">No active courses were found for this account.</p>}
-          <ul className="list">
-            {courses.map((course) => (
-              <li key={course.id}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(course.id)}
-                    onChange={() => toggle(course.id)}
-                  />{" "}
-                  {course.name}
-                </label>
-              </li>
-            ))}
-          </ul>
-          <button className="button" type="button" disabled={busy || selected.length === 0} onClick={importSelected}>
-            {busy ? "Importing…" : `Import ${selected.length} course(s)`}
-          </button>
-        </section>
-      )}
 
       {result && (
         <section className="card">
-          <h2>Import finished</h2>
+          <h2>Sync finished</h2>
           <p>
-            {result.created} created, {result.updated} updated, {result.skipped.length} skipped (no due date).
+            {result.created} created, {result.updated} updated, {result.skipped.length} skipped.
           </p>
           <ul className="list">
-            {result.assignments.map((assignment) => (
-              <li key={assignment.id}>
+            {result.courses.map((course) => (
+              <li key={course.id}>
                 <span>
-                  {assignment.title} <span className="muted">· {assignment.course}</span>
+                  {course.name}
                   <br />
-                  <span className="muted">{formatDate(assignment.deadline)}</span>
+                  <span className="muted">
+                    {course.found === 0
+                      ? "Canvas returned no assignments for this course."
+                      : `${course.pending} pending of ${course.found} · ${course.created} created · ${course.updated} updated · ${course.skipped} skipped`}
+                  </span>
                 </span>
-                <Link to={`/assignments/${assignment.id}`} className="button secondary">
-                  Plan milestones
-                </Link>
               </li>
             ))}
           </ul>
+          {result.skipped.length > 0 && (
+            <details className="skipped-list">
+              <summary className="muted small">Why {result.skipped.length} were skipped</summary>
+              <ul className="list">
+                {result.skipped.map((item) => (
+                  <li key={item.canvas_id}>
+                    <span>
+                      {item.title} <span className="muted small">· {item.reason}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
         </section>
       )}
     </>

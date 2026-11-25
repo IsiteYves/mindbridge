@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router";
 
 import { apiRequest, errorMessage } from "@/lib/api";
+import { onDataChanged } from "@/lib/dataEvents";
+import { useCloseOnOutsideClick } from "@/lib/useCloseOnOutsideClick";
 
-type WorkloadItem = { kind: "milestone" | "deadline"; id: number; assignment_id: number; title: string; course: string };
+type WorkloadKind = "milestone" | "deadline";
+type WorkloadItem = { kind: WorkloadKind; id: number; assignment_id: number; title: string; course: string };
 type WorkloadDay = { date: string; count: number; items: WorkloadItem[] };
 type WorkloadResponse = { start: string; end: string; days: WorkloadDay[] };
 
@@ -37,6 +41,7 @@ function intensityClass(count: number): string {
 
 const MONTH_LABEL = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const KIND_LABELS: Record<WorkloadKind, string> = { milestone: "Milestones", deadline: "Assignment deadlines" };
 
 export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: number } = {}) {
   const today = useMemo(() => new Date(), []);
@@ -46,24 +51,32 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
+  const [kinds, setKinds] = useState<Record<WorkloadKind, boolean>>({ milestone: true, deadline: true });
+  const typesRef = useRef<HTMLDetailsElement>(null);
+  useCloseOnOutsideClick(typesRef);
+
+  const kindsParam = (["milestone", "deadline"] as const).filter((kind) => kinds[kind]).join(",");
+  const isCurrentMonth = year === today.getUTCFullYear() && month === today.getUTCMonth();
 
   const monthStart = useMemo(() => startOfMonth(year, month), [year, month]);
   const monthEnd = useMemo(() => endOfMonth(year, month), [year, month]);
   const gridFirstDay = useMemo(() => gridStart(monthStart), [monthStart]);
 
   useEffect(() => {
+    // With no type selected there is nothing to fetch, and the grid shows no counts.
+    if (!kindsParam) return;
     let cancelled = false;
-    setError(null);
-    setLoading(true);
     const scope = assignmentId ? `&assignment_id=${assignmentId}` : "";
     apiRequest<WorkloadResponse>(
-      `/schedule/workload?start=${toISODate(monthStart)}&end=${toISODate(monthEnd)}${scope}`,
+      `/schedule/workload?start=${toISODate(monthStart)}&end=${toISODate(monthEnd)}&kinds=${kindsParam}${scope}`,
     ).then(
       (response) => {
         if (cancelled) return;
         const byDate: Record<string, WorkloadDay> = {};
         for (const day of response.days) byDate[day.date] = day;
         setDays(byDate);
+        setError(null);
         setLoading(false);
       },
       (err: unknown) => {
@@ -75,13 +88,30 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
     return () => {
       cancelled = true;
     };
-  }, [monthStart, monthEnd, assignmentId]);
+  }, [monthStart, monthEnd, assignmentId, kindsParam, revision]);
+
+  // Bumping revision re-runs the month fetch after another component changes data.
+  useEffect(() => onDataChanged(() => setRevision((value) => value + 1)), []);
 
   function changeMonth(delta: number) {
     const next = new Date(Date.UTC(year, month + delta, 1));
     setYear(next.getUTCFullYear());
     setMonth(next.getUTCMonth());
     setSelected(null);
+    setLoading(true);
+  }
+
+  function goToToday() {
+    setYear(today.getUTCFullYear());
+    setMonth(today.getUTCMonth());
+    setSelected(null);
+    setLoading(true);
+  }
+
+  function toggleKind(kind: WorkloadKind) {
+    setKinds((current) => ({ ...current, [kind]: !current[kind] }));
+    setSelected(null);
+    setLoading(true);
   }
 
   const cells = useMemo(() => {
@@ -94,7 +124,8 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
     return result;
   }, [gridFirstDay, month]);
 
-  const selectedDay = selected ? days[selected] : null;
+  const visibleDays = kindsParam ? days : {};
+  const selectedDay = selected ? visibleDays[selected] : null;
 
   return (
     <div className="workload-heatmap">
@@ -106,6 +137,19 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
         <button type="button" className="button secondary" onClick={() => changeMonth(1)} aria-label="Next month">
           →
         </button>
+        <button type="button" className="button secondary compact" onClick={goToToday} disabled={isCurrentMonth}>
+          Today
+        </button>
+        <details className="kind-filter" ref={typesRef}>
+          <summary className="button secondary compact">Types</summary>
+          <div className="kind-filter-menu">
+            {(["milestone", "deadline"] as const).map((kind) => (
+              <label key={kind} className="kind-filter-option">
+                <input type="checkbox" checked={kinds[kind]} onChange={() => toggleKind(kind)} /> {KIND_LABELS[kind]}
+              </label>
+            ))}
+          </div>
+        </details>
       </div>
 
       {error && <p className="error">{error}</p>}
@@ -127,7 +171,7 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
         {Array.from({ length: 6 }, (_, week) => (
           <div className="heatmap-row" role="row" key={week}>
             {cells.slice(week * 7, week * 7 + 7).map(({ date, inMonth }) => {
-              const day = days[date];
+              const day = visibleDays[date];
               const count = day?.count ?? 0;
               return (
                 <button
@@ -138,11 +182,15 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
                     selected === date ? " selected" : ""
                   }`}
                   disabled={count === 0}
-                  aria-label={`${date}, ${count} item${count === 1 ? "" : "s"} due`}
+                  aria-label={`${date}, ${count} Todo ${count === 1 ? "Item" : "Items"}`}
                   onClick={() => setSelected(date === selected ? null : date)}
                 >
                   <span className="heatmap-date">{Number(date.slice(8, 10))}</span>
-                  {count > 0 && <span className="heatmap-count">{count}</span>}
+                  {count > 0 && (
+                    <span className="heatmap-count">
+                      {count} Todo {count === 1 ? "Item" : "Items"}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -153,7 +201,7 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
       {selectedDay && (
         <div className="heatmap-detail">
           <h4 className="mono-label">
-            {selectedDay.date} · {selectedDay.count} item{selectedDay.count === 1 ? "" : "s"}
+            {selectedDay.date} · {selectedDay.count} Todo {selectedDay.count === 1 ? "Item" : "Items"}
           </h4>
           <ul className="list">
             {selectedDay.items.map((item) => (
@@ -162,6 +210,11 @@ export default function WorkloadHeatmap({ assignmentId }: { assignmentId?: numbe
                 <span className="muted small">
                   {item.course} · {item.kind === "deadline" ? "assignment deadline" : "milestone"}
                 </span>
+                {item.kind === "deadline" && (
+                  <Link to={`/assignments/${item.assignment_id}`} className="button secondary compact">
+                    View
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

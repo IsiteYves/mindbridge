@@ -17,6 +17,7 @@ class User(TimestampMixin, db.Model):
     password_hash = db.Column(String(255), nullable=False)
     failed_login_attempts = db.Column(Integer, nullable=False, default=0, server_default="0")
     locked_until = db.Column(DateTime(timezone=True), nullable=True)
+    pending_email = db.Column(String(255), nullable=True)
 
     assignments = db.relationship("Assignment", back_populates="user", cascade="all, delete-orphan")
     study_plans = db.relationship("StudyPlan", back_populates="user", cascade="all, delete-orphan")
@@ -95,6 +96,7 @@ class Reminder(TimestampMixin, db.Model):
             "user_id", "assignment_id", "milestone_id", "kind", "offset_days", "fired_for_date",
             name="uq_reminder_delivery",
         ),
+        # A plain unique constraint lets NULL milestone_ids repeat, so deadline reminders need a partial index.
         Index(
             "uq_reminder_delivery_no_milestone",
             "user_id", "assignment_id", "kind", "offset_days", "fired_for_date",
@@ -198,3 +200,13 @@ class DailyGoal(TimestampMixin, db.Model):
     items = db.Column(JSON, nullable=False, default=list)
 
     user = db.relationship("User", back_populates="daily_goals")
+
+class RefreshToken(TimestampMixin, db.Model):
+    __tablename__ = "refresh_tokens"
+
+    id = db.Column(Integer, primary_key=True)
+    user_id = db.Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    # Only a SHA-256 hash of the refresh token is stored, never the token itself.
+    token_hash = db.Column(String(64), nullable=False, unique=True)
+    expires_at = db.Column(DateTime(timezone=True), nullable=False)
+    revoked_at = db.Column(DateTime(timezone=True), nullable=True)

@@ -7,8 +7,10 @@ from app.api.auth import token_required
 from app.api.common import (
     MAX_DESCRIPTION_LENGTH,
     MAX_TITLE_LENGTH,
+    NOT_PENDING_MESSAGE,
     STATUSES,
     clean_text,
+    is_pending,
     iso_utc,
     json_body,
     parse_deadline,
@@ -160,12 +162,10 @@ def create_milestones_from_rubric(assignment_id):
         return jsonify(error="replace must be true or false"), 400
 
     now = dt.datetime.now(dt.timezone.utc)
-    if assignment.deadline is None:
-        return jsonify(error="Set a deadline before generating milestones"), 400
-    if assignment.deadline <= now:
-        return jsonify(error="The deadline has already passed"), 400
+    if not is_pending(assignment, now):
+        return jsonify(error=NOT_PENDING_MESSAGE), 400
     if assignment.milestones and not replace:
-        return jsonify(error="Milestones already exist; send replace=true to regenerate them"), 409
+        return jsonify(error="Milestones already exist; send choose ' Replace existing milestones' to regenerate them"), 409
 
     for existing in list(assignment.milestones):
         db.session.delete(existing)
@@ -227,6 +227,9 @@ def update_milestone(milestone_id):
         if data["status"] not in STATUSES:
             return jsonify(error=f"status must be one of {', '.join(STATUSES)}"), 400
         milestone.status = data["status"]
+        # Starting work on a milestone also moves an unstarted assignment to in_progress.
+        if milestone.status == "in_progress" and milestone.assignment.status == "not_started":
+            milestone.assignment.status = "in_progress"
 
     if "weight" in data:
         is_valid, weight = _weight(data["weight"])

@@ -52,6 +52,7 @@ def sync_all():
             integration.last_synced_at = dt.datetime.now(dt.timezone.utc)
             db.session.commit()
             synced += 1
+        # One failing account is disconnected and skipped so it does not block the rest.
         except (CanvasError, EncryptionNotConfigured) as error:
             db.session.rollback()
             integration.status = "disconnected"

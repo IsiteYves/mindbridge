@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 
 import AuthLayout from "@/components/AuthLayout";
 import PasswordRules from "@/components/PasswordRules";
-import { apiRequest, errorMessage } from "@/lib/api";
+import { ApiError, apiRequest, errorMessage } from "@/lib/api";
 import { unmetPasswordRules } from "@/lib/password";
 
 export default function RegisterPage() {
@@ -11,10 +11,12 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const unmet = unmetPasswordRules(password);
   const mismatch = confirm.length > 0 && confirm !== password;
+  // Submit stays disabled until the password rules pass and both password fields match.
   const canSubmit = unmet.length === 0 && confirm === password && !busy;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -24,11 +26,26 @@ export default function RegisterPage() {
     const email = String(form.get("email") ?? "").trim();
     setBusy(true);
     setError(null);
+    setUnverifiedEmail(null);
     try {
       await apiRequest("/auth/register", {
         method: "POST",
         body: { name: String(form.get("name") ?? ""), email, password, confirm_password: confirm },
       });
+      navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+    } catch (err) {
+      setError(errorMessage(err));
+      // The address is already registered but unverified, so offer to resend the code.
+      if (err instanceof ApiError && err.details.unverified === true) setUnverifiedEmail(email);
+      setBusy(false);
+    }
+  }
+
+  async function resendCode(email: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      await apiRequest("/auth/resend-code", { method: "POST", body: { email } });
       navigate(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(errorMessage(err));
@@ -77,7 +94,21 @@ export default function RegisterPage() {
           />
         </label>
         {mismatch && <p className="error">Passwords do not match.</p>}
-        {error && <p className="error">{error}</p>}
+        {error && (
+          <p className="error">
+            {error}
+            {unverifiedEmail && (
+              <button aria-busy={busy}
+                type="button"
+                className="link-button"
+                disabled={busy}
+                onClick={() => resendCode(unverifiedEmail)}
+              >
+                Resend verification email
+              </button>
+            )}
+          </p>
+        )}
         <button className="button" type="submit" disabled={!canSubmit}>
           {busy ? "Creating…" : "Create account"}
         </button>

@@ -7,7 +7,7 @@ from app.extensions import db
 from app.models import VerificationCode
 
 CODE_TTL = dt.timedelta(minutes=10)
-RESEND_COOLDOWN = dt.timedelta(seconds=60)
+RESEND_COOLDOWN = dt.timedelta(minutes=5)
 MAX_ATTEMPTS = 5
 
 
@@ -15,6 +15,7 @@ def _now():
     return dt.datetime.now(dt.timezone.utc)
 
 
+# Newest first; the id breaks ties when two codes share a timestamp.
 def _latest(user_id, purpose):
     return (
         db.session.query(VerificationCode)
@@ -22,6 +23,14 @@ def _latest(user_id, purpose):
         .order_by(VerificationCode.created_at.desc(), VerificationCode.id.desc())
         .first()
     )
+
+
+def seconds_until_next_code(user_id, purpose):
+    latest = _latest(user_id, purpose)
+    if latest is None:
+        return 0
+    remaining = RESEND_COOLDOWN - (_now() - latest.created_at)
+    return max(0, int(remaining.total_seconds()))
 
 
 def issue_code(user, purpose):
@@ -56,6 +65,7 @@ def check_code(user, purpose, code):
     if record is None:
         return False
 
+    # An expired or over-attempted code is deleted, so it cannot be retried.
     if record.expires_at <= _now() or record.attempts >= MAX_ATTEMPTS:
         db.session.delete(record)
         db.session.commit()

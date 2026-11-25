@@ -5,6 +5,7 @@ from app.api.assignments import assignments_bp
 from app.api.auth import auth_bp
 from app.api.canvas import canvas_bp
 from app.api.daily_goal import daily_goal_bp
+from app.api.dashboard import dashboard_bp
 from app.api.focus import focus_bp
 from app.api.health import health_bp
 from app.api.milestones import milestones_bp
@@ -25,3 +26,4 @@ api_bp.register_blueprint(agent_bp)
 api_bp.register_blueprint(notifications_bp)
 api_bp.register_blueprint(focus_bp)
 api_bp.register_blueprint(daily_goal_bp)
+api_bp.register_blueprint(dashboard_bp)

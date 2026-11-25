@@ -48,7 +48,7 @@ def test_review_404s_for_an_assignment_that_does_not_exist(client, make_user_hea
 # ── Always-available, rule-based behaviour (no AI provider needed) ──────────
 
 
-def test_a_well_balanced_plan_with_nothing_overdue_gets_a_reassuring_summary(app, client, make_user_headers, monkeypatch):
+def test_a_plan_with_no_findings_says_what_was_checked(app, client, make_user_headers, monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     headers = make_user_headers("student1")
     assignment_id = make_assignment(client, headers)
@@ -58,18 +58,20 @@ def test_a_well_balanced_plan_with_nothing_overdue_gets_a_reassuring_summary(app
     assert response.status_code == 200
     body = response.get_json()
     assert body["findings"] == []
-    assert "balanced" in body["summary"].lower() or "nothing" in body["summary"].lower()
+    assert body["summary"] == "Milestones cover the rubric and finish before the deadline."
     assert body["replan_suggestion"] is None
     assert "generated_at" in body
 
 
-def test_an_uncovered_heavily_weighted_criterion_is_flagged(app, client, make_user_headers, monkeypatch):
+def test_a_heavy_criterion_whose_milestone_has_a_different_weight_is_flagged(app, client, make_user_headers, monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     headers = make_user_headers("student1")
     assignment_id = make_assignment(client, headers)
     payload = {"criteria": [{"title": "Stakeholder research", "weight": 40}], "replace": False}
     client.post(f"{ASSIGNMENTS}/{assignment_id}/milestones/from-rubric", json=payload, headers=headers)
-    add_milestone(client, headers, assignment_id, title="Unrelated writing task")
+    # from-rubric names the milestone after its criterion; give it a clearly different weight.
+    milestone_id = client.get(f"{ASSIGNMENTS}/{assignment_id}/milestones", headers=headers).get_json()[0]["id"]
+    client.patch(f"/api/v1/milestones/{milestone_id}", json={"weight": 10}, headers=headers)
 
     body = review(client, headers, assignment_id).get_json()
     assert any("Stakeholder research" in f["message"] for f in body["findings"])
@@ -172,3 +174,38 @@ def test_the_ai_pass_never_sends_the_students_name_or_email(app, client, make_us
 
     assert "VeryDistinctiveName" not in sent_text["payload"]
     assert "@example.com" not in sent_text["payload"]
+
+
+def test_a_plan_where_every_milestone_is_done_says_so_without_findings(app, client, make_user_headers, monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    headers = make_user_headers("student1")
+    assignment_id = make_assignment(client, headers)
+    milestone_id = add_milestone(client, headers, assignment_id, title="Draft")
+    client.patch(f"/api/v1/milestones/{milestone_id}", json={"status": "done"}, headers=headers)
+
+    body = review(client, headers, assignment_id).get_json()
+    assert body["findings"] == []
+    assert body["summary"] == "All milestones are done. Nothing left to balance."
+
+
+def test_applying_the_suggestion_resolves_the_crowding_finding(app, client, make_user_headers, monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    headers = make_user_headers("student1")
+    now = dt.datetime.now(dt.timezone.utc)
+    deadline_at = now + dt.timedelta(days=5)
+    assignment_id = make_assignment(client, headers, deadline=deadline_at.isoformat())
+    first = add_milestone(client, headers, assignment_id, title="Draft", target_date=(deadline_at - dt.timedelta(hours=20)).isoformat())
+    second = add_milestone(client, headers, assignment_id, title="Final", target_date=(deadline_at - dt.timedelta(hours=30)).isoformat())
+
+    before = review(client, headers, assignment_id).get_json()
+    assert any("last two days" in f["message"] for f in before["findings"])
+    suggestion = before["replan_suggestion"]
+    assert suggestion is not None
+    assert set(suggestion["milestone_ids"]) == {first, second}
+
+    for milestone_id, target in zip(suggestion["milestone_ids"], suggestion["new_target_dates"]):
+        response = client.patch(f"/api/v1/milestones/{milestone_id}", json={"target_date": target}, headers=headers)
+        assert response.status_code == 200, response.get_json()
+
+    after = review(client, headers, assignment_id).get_json()
+    assert not any("last two days" in f["message"] for f in after["findings"])

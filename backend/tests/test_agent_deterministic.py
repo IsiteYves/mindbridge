@@ -160,3 +160,23 @@ def test_the_minimum_spacing_floor_is_enforced_at_its_exact_boundary():
     just_short, findings = deterministic.propose_replan(milestones, NOW, NOW + minimum_total - dt.timedelta(minutes=1))
     assert just_short is None
     assert findings[0]["severity"] == "warning"
+
+
+def test_several_open_milestones_crowded_before_the_deadline_are_flagged():
+    deadline = NOW + dt.timedelta(days=5)
+    milestones = [
+        {"id": 1, "title": "A", "description": None, "target_date": deadline - dt.timedelta(hours=20), "status": "not_started", "weight": None, "position": 0},
+        {"id": 2, "title": "B", "description": None, "target_date": deadline - dt.timedelta(hours=30), "status": "not_started", "weight": None, "position": 1},
+    ]
+    findings = deterministic.check_crowding(milestones, deadline, NOW)
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "warning"
+
+
+def test_spread_milestones_are_not_flagged_as_crowded():
+    deadline = NOW + dt.timedelta(days=10)
+    milestones = [
+        {"id": 1, "title": "A", "description": None, "target_date": NOW + dt.timedelta(days=2), "status": "not_started", "weight": None, "position": 0},
+        {"id": 2, "title": "B", "description": None, "target_date": NOW + dt.timedelta(days=6), "status": "not_started", "weight": None, "position": 1},
+    ]
+    assert deterministic.check_crowding(milestones, deadline, NOW) == []
