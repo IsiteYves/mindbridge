@@ -13,3 +13,4 @@ langgraph==1.2.24
 langchain-core==1.8.4
 langchain-anthropic==1.7.12
 argon2-cffi==25.1.0
+gunicorn==23.0.0

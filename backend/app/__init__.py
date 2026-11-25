@@ -1,4 +1,6 @@
-from flask import Flask
+from pathlib import Path
+
+from flask import Flask, abort, send_from_directory
 from flask_cors import CORS
 
 from app.api import api_bp
@@ -29,5 +31,16 @@ def create_app(config=None):
 
     from app.cli import register as register_cli
     register_cli(app)
+
+    frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+    if frontend_dist.is_dir():
+        @app.get("/", defaults={"path": ""})
+        @app.get("/<path:path>")
+        def serve_frontend(path):
+            if path.startswith("api/"):
+                abort(404)
+            if path and (frontend_dist / path).is_file():
+                return send_from_directory(frontend_dist, path)
+            return send_from_directory(frontend_dist, "index.html")
 
     return app
